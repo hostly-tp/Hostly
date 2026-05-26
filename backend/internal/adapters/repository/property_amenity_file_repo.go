@@ -103,7 +103,7 @@ func (r *PropertyAmenityFileRepository) GetByPropertyIDOrderedByAmenityID(proper
 	defer r.mu.Unlock()
 
 	minKey := propertyAmenityOrderKey(propertyID, 0)
-	maxKey := propertyAmenityOrderKey(propertyID, int(^uint32(0)))
+	maxKey := int64(uint64(uint32(propertyID))<<32 | uint64(^uint32(0)))
 	offsets := r.orderedByKey.Range(minKey, maxKey)
 	return r.loadByOffsetsLocked(offsets)
 }
