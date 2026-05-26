@@ -3,8 +3,15 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import { ErrorMsg, Spinner } from "../components/common";
-import { IconArrowLeft, IconCalendar, IconEdit } from "../components/icons";
-import { imoveisService, type Imovel } from "../services/api";
+import {
+  IconArrowLeft,
+  IconCalendar,
+  IconEdit,
+} from "../components/icons";
+import {
+  imoveisService,
+  type Imovel,
+} from "../services/api";
 import { geocodePropertyAddress } from "../services/geocoding";
 
 const _proto = L.Icon.Default.prototype as unknown as Record<string, unknown>;
@@ -42,8 +49,11 @@ export function ImovelDetailPage({
   const geocoded = useRef(false);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
+    queueMicrotask(() => {
+      setLoading(true);
+      setError(null);
+    });
+    geocoded.current = false;
     imoveisService
       .getById(imovelId)
       .then((data) => {
@@ -180,7 +190,7 @@ export function ImovelDetailPage({
               <button
                 key={idx}
                 onClick={() => setPhotoIndex(idx)}
-                className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
                   idx === photoIndex
                     ? "border-amber-400"
                     : "border-transparent hover:border-stone-300"
@@ -278,7 +288,7 @@ export function ImovelDetailPage({
                 >
                   {c.nome}
                   {c.descricao && (
-                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[200px] bg-stone-800 text-white text-xs rounded-lg px-2.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-normal text-center shadow-lg">
+                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-50 bg-stone-800 text-white text-xs rounded-lg px-2.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-normal text-center shadow-lg">
                       {c.descricao}
                     </span>
                   )}

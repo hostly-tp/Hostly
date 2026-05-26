@@ -1,6 +1,9 @@
 package amenity
 
-import "backend/internal/domain"
+import (
+	"backend/internal/domain"
+	"strings"
+)
 
 var commonAmenities = []domain.AmenityCatalogItem{
 	{Name: "Wi-Fi", Description: "Internet sem fio", Icon: "wifi", Active: true},
@@ -25,6 +28,11 @@ func (s *service) Create(item domain.AmenityCatalogItem) (domain.AmenityCatalogI
 	if err := item.Validate(); err != nil {
 		return domain.AmenityCatalogItem{}, err
 	}
+	if exists, err := s.existsByName(item.Name, 0); err != nil {
+		return domain.AmenityCatalogItem{}, err
+	} else if exists {
+		return domain.AmenityCatalogItem{}, domain.ErrAlreadyExists
+	}
 	return s.repo.Create(item)
 }
 
@@ -48,6 +56,11 @@ func (s *service) Update(id int, item domain.AmenityCatalogItem) (domain.Amenity
 	if err := item.Validate(); err != nil {
 		return domain.AmenityCatalogItem{}, err
 	}
+	if exists, err := s.existsByName(item.Name, id); err != nil {
+		return domain.AmenityCatalogItem{}, err
+	} else if exists {
+		return domain.AmenityCatalogItem{}, domain.ErrAlreadyExists
+	}
 	return s.repo.Update(id, item)
 }
 
@@ -55,7 +68,13 @@ func (s *service) Delete(id int) error {
 	if id <= 0 {
 		return domain.ErrInvalidEntity
 	}
-	return s.repo.Delete(id)
+	if err := s.repo.Delete(id); err != nil {
+		return err
+	}
+	if s.cleaner != nil {
+		return s.cleaner.DeleteByAmenityID(id)
+	}
+	return nil
 }
 
 func (s *service) GetAllActive() ([]domain.AmenityCatalogItem, error) {
@@ -65,8 +84,17 @@ func (s *service) GetAllActive() ([]domain.AmenityCatalogItem, error) {
 	}
 
 	active := make([]domain.AmenityCatalogItem, 0, len(items))
+	seen := make(map[string]struct{}, len(items))
 	for _, item := range items {
 		if item.Active {
+			key := amenityNameKey(item.Name)
+			if key == "" {
+				continue
+			}
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
 			active = append(active, item)
 		}
 	}
@@ -78,8 +106,11 @@ func (s *service) SeedCommonAmenities() error {
 	if err != nil {
 		return err
 	}
-	if len(current) > 0 {
-		return nil
+	existing := make(map[string]struct{}, len(current))
+	for _, item := range current {
+		if item.Active {
+			existing[amenityNameKey(item.Name)] = struct{}{}
+		}
 	}
 
 	for _, amenity := range commonAmenities {
@@ -87,10 +118,36 @@ func (s *service) SeedCommonAmenities() error {
 		if err := amenity.Validate(); err != nil {
 			continue
 		}
+		key := amenityNameKey(amenity.Name)
+		if _, ok := existing[key]; ok {
+			continue
+		}
 		if _, err := s.repo.Create(amenity); err != nil {
 			return err
 		}
+		existing[key] = struct{}{}
 	}
 
 	return nil
+}
+
+func (s *service) existsByName(name string, ignoreID int) (bool, error) {
+	key := amenityNameKey(name)
+	items, err := s.repo.GetAll()
+	if err != nil {
+		return false, err
+	}
+	for _, item := range items {
+		if item.ID == ignoreID || !item.Active {
+			continue
+		}
+		if amenityNameKey(item.Name) == key {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func amenityNameKey(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
 }

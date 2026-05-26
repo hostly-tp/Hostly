@@ -6,27 +6,32 @@ import (
 	amenityuc "backend/internal/usecase/amenity"
 	authuc "backend/internal/usecase/auth"
 	"backend/internal/usecase/property"
+	propertyamenityuc "backend/internal/usecase/propertyamenity"
 	reservationuc "backend/internal/usecase/reservation"
 	useruc "backend/internal/usecase/user"
 	"net/http"
 )
 
 type Dependencies struct {
-	PropertyService    property.Service
-	UserService        useruc.Service
-	ReservationService reservationuc.Service
-	AuthService        authuc.Service
-	AmenityService     amenityuc.Service
-	AEDService         aeduc.Service
+	PropertyService        property.Service
+	UserService            useruc.Service
+	ReservationService     reservationuc.Service
+	AuthService            authuc.Service
+	AmenityService         amenityuc.Service
+	PropertyAmenityService propertyamenityuc.Service
+	AEDService             aeduc.Service
+	SortImoveis  func(attr string, asc bool) error
+	SortReservas func(attr string, asc bool) error
 }
 
 func NewRouter(deps Dependencies) http.Handler {
-	props := handler.NewPropertyHandler(deps.PropertyService)
+	props := handler.NewPropertyHandler(deps.PropertyService, deps.SortImoveis)
 	users := handler.NewUserHandler(deps.UserService)
-	reservs := handler.NewReservationHandler(deps.ReservationService)
+	reservs := handler.NewReservationHandler(deps.ReservationService, deps.SortReservas)
 	dash := handler.NewDashboardHandler(deps.PropertyService, deps.UserService, deps.ReservationService)
 	auth := handler.NewAuthHandler(deps.AuthService)
 	amenities := handler.NewAmenityHandler(deps.AmenityService)
+	propertyAmenities := handler.NewPropertyAmenityHandler(deps.PropertyAmenityService)
 	aed := handler.NewAEDHandler(deps.AEDService)
 
 	mux := http.NewServeMux()
@@ -66,6 +71,11 @@ func NewRouter(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /aed/anfitriao/{id}", aed.RelacaoAnfitriao)
 
 	mux.HandleFunc("GET /dashboard/stats", dash.Stats)
+	mux.HandleFunc("POST /imoveis-comodidades", propertyAmenities.Create)
+	mux.HandleFunc("GET /imoveis-comodidades/imovel/{idImovel}", propertyAmenities.ListAmenitiesByProperty)
+	mux.HandleFunc("GET /imoveis-comodidades/imovel/{idImovel}/comodidade/{idComodidade}", propertyAmenities.Get)
+	mux.HandleFunc("DELETE /imoveis-comodidades/imovel/{idImovel}/comodidade/{idComodidade}", propertyAmenities.Delete)
+	mux.HandleFunc("GET /imoveis-comodidades/comodidade/{idComodidade}/imoveis", propertyAmenities.ListPropertiesByAmenity)
 	mux.HandleFunc("GET /comodidades", amenities.List)
 	mux.HandleFunc("POST /comodidades", amenities.Create)
 	mux.HandleFunc("GET /comodidades/{id}", amenities.GetByID)

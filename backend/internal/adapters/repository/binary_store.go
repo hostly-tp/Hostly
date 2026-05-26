@@ -514,6 +514,62 @@ func (s *binaryEntityStore[T]) HashStats() HashIndexStats {
 	return s.index.Stats()
 }
 
+func (s *binaryEntityStore[T]) RewriteSorted(items []T) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	existingLastID := int32(0)
+	if f, err := os.Open(s.path); err == nil {
+		if h, err := readHeader(f); err == nil {
+			existingLastID = h.LastID
+		}
+		f.Close()
+	}
+
+	maxID := existingLastID
+	for _, item := range items {
+		if id := int32(s.getID(item)); id > maxID {
+			maxID = id
+		}
+	}
+
+	tmpPath := s.path + ".rewrite.tmp"
+	file, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0o644)
+	if err != nil {
+		return err
+	}
+	cleanup := func() { file.Close(); os.Remove(tmpPath) }
+
+	header := fileHeader{Version: fileHeaderVersion, LastID: maxID, Count: int32(len(items))}
+	if err := writeHeader(file, header); err != nil {
+		cleanup()
+		return err
+	}
+
+	s.index.Reset()
+	for _, item := range items {
+		payload, err := s.codec.encode(item)
+		if err != nil {
+			cleanup()
+			return err
+		}
+		offset, err := appendRecord(file, false, s.getID(item), payload)
+		if err != nil {
+			cleanup()
+			return err
+		}
+		s.index.Insert(s.getID(item), offset)
+	}
+	file.Close()
+
+	if err := os.Rename(tmpPath, s.path); err != nil {
+		os.Remove(tmpPath)
+		return err
+	}
+
+	return s.persistIndexFile()
+}
+
 func readHeader(file *os.File) (fileHeader, error) {
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return fileHeader{}, err

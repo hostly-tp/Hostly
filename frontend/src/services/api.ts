@@ -15,6 +15,7 @@ export interface Imovel {
     cep: string;
   };
   comodidades: {
+    idComodidade?: number;
     nome: string;
     descricao?: string;
   }[];
@@ -93,6 +94,13 @@ export interface DashboardStats {
   totalAnfitrioes: number;
   totalReservas: number;
   receitaTotal: number;
+}
+
+export interface ImovelComodidade {
+  idImovel: number;
+  idComodidade: number;
+  dataCadastro: string;
+  ativo: boolean;
 }
 
 export type CreateUsuarioInput = {
@@ -461,6 +469,31 @@ export const comodidadeService = {
   },
   async delete(id: number): Promise<void> {
     return request<void>(`/comodidades/${id}`, { method: "DELETE" });
+  },
+  async getImoveis(idComodidade: number): Promise<Imovel[]> {
+    return request<Imovel[]>(
+      `/imoveis-comodidades/comodidade/${idComodidade}/imoveis`,
+    );
+  },
+  async linkImovel(
+    idImovel: number,
+    idComodidade: number,
+  ): Promise<ImovelComodidade> {
+    return request<ImovelComodidade>("/imoveis-comodidades", {
+      method: "POST",
+      body: JSON.stringify({
+        idImovel,
+        idComodidade,
+        dataCadastro: new Date().toISOString().slice(0, 10),
+        ativo: true,
+      }),
+    });
+  },
+  async unlinkImovel(idImovel: number, idComodidade: number): Promise<void> {
+    return request<void>(
+      `/imoveis-comodidades/imovel/${idImovel}/comodidade/${idComodidade}`,
+      { method: "DELETE" },
+    );
   },
 };
 

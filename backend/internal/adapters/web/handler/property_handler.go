@@ -24,6 +24,7 @@ type createPropertyRequest struct {
 		ZipCode      string `json:"cep"`
 	} `json:"endereco"`
 	Amenities []struct {
+		ID          int    `json:"idComodidade"`
 		Name        string `json:"nome"`
 		Description string `json:"descricao"`
 	} `json:"comodidades"`
@@ -49,6 +50,7 @@ type propertyUpdatePayload struct {
 		ZipCode      string `json:"cep"`
 	} `json:"endereco"`
 	Amenities *[]struct {
+		ID          int    `json:"idComodidade"`
 		Name        string `json:"nome"`
 		Description string `json:"descricao"`
 	} `json:"comodidades"`
@@ -62,11 +64,12 @@ type propertyUpdatePayload struct {
 }
 
 type PropertyHandler struct {
-	svc property.Service
+	svc    property.Service
+	sortFn func(attr string, asc bool) error
 }
 
-func NewPropertyHandler(svc property.Service) *PropertyHandler {
-	return &PropertyHandler{svc: svc}
+func NewPropertyHandler(svc property.Service, sortFn func(attr string, asc bool) error) *PropertyHandler {
+	return &PropertyHandler{svc: svc, sortFn: sortFn}
 }
 
 func (h *PropertyHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -84,11 +87,20 @@ func (h *PropertyHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if sortBy := query.Get("ordenarPor"); sortBy != "" {
+		asc := query.Get("ordem") != "desc"
+		if err := h.sortFn(sortBy, asc); err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
 	filtered, err := h.svc.List(filter)
 	if err != nil {
 		respondDomainError(w, err)
 		return
 	}
+
 	respondJSON(w, http.StatusOK, filtered)
 }
 
@@ -287,6 +299,7 @@ func toDomainAddressPtr(value *struct {
 }
 
 func toDomainAmenities(values []struct {
+	ID          int    `json:"idComodidade"`
 	Name        string `json:"nome"`
 	Description string `json:"descricao"`
 }) []domain.Amenity {
@@ -295,12 +308,13 @@ func toDomainAmenities(values []struct {
 	}
 	items := make([]domain.Amenity, 0, len(values))
 	for _, item := range values {
-		items = append(items, domain.Amenity{Name: item.Name, Description: item.Description})
+		items = append(items, domain.Amenity{ID: item.ID, Name: item.Name, Description: item.Description})
 	}
 	return items
 }
 
 func toDomainAmenitiesPtr(values *[]struct {
+	ID          int    `json:"idComodidade"`
 	Name        string `json:"nome"`
 	Description string `json:"descricao"`
 }) *[]domain.Amenity {

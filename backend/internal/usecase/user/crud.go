@@ -1,6 +1,9 @@
 package user
 
-import "backend/internal/domain"
+import (
+	"backend/internal/domain"
+	"strings"
+)
 
 type ListFilter struct {
 	Query string
@@ -22,7 +25,9 @@ func (s *service) Create(item domain.User) (domain.User, error) {
 	if item.Password == "" {
 		return domain.User{}, domain.ErrInvalidEntity
 	}
-	if _, err := s.repo.GetByEmail(item.Email); err == nil {
+	if exists, err := s.emailInUse(item.Email, 0); err != nil {
+		return domain.User{}, err
+	} else if exists {
 		return domain.User{}, domain.ErrEmailInUse
 	}
 
@@ -53,8 +58,14 @@ func (s *service) GetAllHosts() ([]domain.User, error) {
 	}
 
 	hosts := make([]domain.User, 0, len(users))
+	seen := make(map[string]struct{}, len(users))
 	for _, u := range users {
 		if u.Type == domain.UserTypeHost && u.Active {
+			key := userEmailKey(u.Email)
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
 			hosts = append(hosts, u)
 		}
 	}
@@ -68,8 +79,14 @@ func (s *service) GetAll() ([]domain.User, error) {
 	}
 
 	activeUsers := make([]domain.User, 0, len(users))
+	seen := make(map[string]struct{}, len(users))
 	for _, u := range users {
 		if u.Active {
+			key := userEmailKey(u.Email)
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
 			activeUsers = append(activeUsers, u)
 		}
 	}
@@ -96,8 +113,14 @@ func (s *service) List(filter ListFilter) ([]domain.User, error) {
 	}
 
 	activeUsers := make([]domain.User, 0, len(users))
+	seen := make(map[string]struct{}, len(users))
 	for _, u := range users {
 		if u.Active {
+			key := userEmailKey(u.Email)
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
 			activeUsers = append(activeUsers, u)
 		}
 	}
@@ -111,6 +134,11 @@ func (s *service) Update(id int, item domain.User) (domain.User, error) {
 	item.ID = id
 	if item.Type == "" {
 		item.Type = domain.UserTypeHost
+	}
+	if exists, err := s.emailInUse(item.Email, id); err != nil {
+		return domain.User{}, err
+	} else if exists {
+		return domain.User{}, domain.ErrEmailInUse
 	}
 	if err := item.Validate(); err != nil {
 		return domain.User{}, err
@@ -171,4 +199,25 @@ func (s *service) SeedAdmin(name string, email string, password string) (domain.
 	}
 
 	return s.repo.Create(admin)
+}
+
+func (s *service) emailInUse(email string, ignoreID int) (bool, error) {
+	key := userEmailKey(email)
+	users, err := s.repo.GetAll()
+	if err != nil {
+		return false, err
+	}
+	for _, existing := range users {
+		if existing.ID == ignoreID || !existing.Active {
+			continue
+		}
+		if userEmailKey(existing.Email) == key {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func userEmailKey(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
 }

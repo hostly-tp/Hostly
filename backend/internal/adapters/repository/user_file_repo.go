@@ -69,6 +69,9 @@ func (r *UserFileRepository) GetByEmail(email string) (domain.User, error) {
 
 	normalized := strings.TrimSpace(strings.ToLower(email))
 	for _, item := range all {
+		if !item.Active {
+			continue
+		}
 		if strings.ToLower(strings.TrimSpace(item.Email)) == normalized {
 			return item, nil
 		}

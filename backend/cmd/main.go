@@ -3,11 +3,13 @@ package main
 import (
 	"backend/internal/adapters/payment"
 	"backend/internal/adapters/repository"
+	"backend/internal/adapters/sorting"
 	web "backend/internal/adapters/web"
 	aeduc "backend/internal/usecase/aed"
 	amenityuc "backend/internal/usecase/amenity"
 	authuc "backend/internal/usecase/auth"
 	"backend/internal/usecase/property"
+	propertyamenityuc "backend/internal/usecase/propertyamenity"
 	reservationuc "backend/internal/usecase/reservation"
 	useruc "backend/internal/usecase/user"
 	"log"
@@ -35,11 +37,17 @@ func main() {
 		log.Fatalf("erro ao inicializar repositorio de comodidades: %v", err)
 	}
 
-	propertyService := property.NewService(propertyRepo, userRepo)
+	propertyAmenityRepo, err := repository.NewPropertyAmenityFileRepository("data/imoveis_comodidades.db")
+	if err != nil {
+		log.Fatalf("erro ao inicializar repositorio de imoveis_comodidades: %v", err)
+	}
+
+	propertyAmenityService := propertyamenityuc.NewService(propertyAmenityRepo, propertyRepo, amenityRepo)
+	propertyService := property.NewService(propertyRepo, userRepo, propertyAmenityService)
 	userService := useruc.NewService(userRepo)
 	paymentGateway := payment.NewSimulatedGateway()
 	reservationService := reservationuc.NewService(reservationRepo, propertyRepo, userRepo, paymentGateway)
-	amenityService := amenityuc.NewService(amenityRepo)
+	amenityService := amenityuc.NewService(amenityRepo, propertyAmenityService)
 	aedService := aeduc.NewService(
 		propertyService,
 		reservationService,
@@ -58,6 +66,8 @@ func main() {
 	)
 	authService := authuc.NewService(userService, propertyService)
 
+	externalSorter := sorting.NewEngine("data", 4)
+
 	if _, err := authService.SeedDefaultAdmin(); err != nil {
 		log.Fatalf("erro ao criar admin padrao: %v", err)
 	}
@@ -67,12 +77,19 @@ func main() {
 	}
 
 	router := web.NewRouter(web.Dependencies{
-		PropertyService:    propertyService,
-		UserService:        userService,
-		ReservationService: reservationService,
-		AuthService:        authService,
-		AmenityService:     amenityService,
-		AEDService:         aedService,
+		PropertyService:        propertyService,
+		UserService:            userService,
+		ReservationService:     reservationService,
+		AuthService:            authService,
+		AmenityService:         amenityService,
+		PropertyAmenityService: propertyAmenityService,
+		AEDService:             aedService,
+		SortImoveis: func(attr string, asc bool) error {
+			return propertyRepo.SortFileBy(externalSorter, attr, asc)
+		},
+		SortReservas: func(attr string, asc bool) error {
+			return reservationRepo.SortFileBy(externalSorter, attr, asc)
+		},
 	})
 
 	addr := ":8080"
