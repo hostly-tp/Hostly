@@ -1,12 +1,14 @@
 package repository
 
 import (
+	"backend/internal/adapters/sorting"
 	"backend/internal/domain"
 	reservationuc "backend/internal/usecase/reservation"
 	"errors"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type ReservationFileRepository struct {
@@ -241,14 +243,53 @@ func (r *ReservationFileRepository) Search(query string, status string) ([]domai
 	return filtered, nil
 }
 
+func (r *ReservationFileRepository) SortFileBy(e *sorting.Engine, attr string, asc bool) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	all, err := r.store.GetAll()
+	if err != nil {
+		return err
+	}
+
+	sorted, err := sorting.SortExternal(e, "reservas", all, reservationSortKeyFn(attr), asc)
+	if err != nil {
+		return err
+	}
+
+	if err := r.store.RewriteSorted(sorted); err != nil {
+		return err
+	}
+
+	return r.rebuildIndexes()
+}
+
+func reservationSortKeyFn(attr string) func(domain.Reservation) (float64, int) {
+	parseDate := func(s string) float64 {
+		t, err := time.Parse("2006-01-02", s)
+		if err != nil {
+			return 0
+		}
+		return float64(t.Unix())
+	}
+	switch attr {
+	case "valorTotal":
+		return func(r domain.Reservation) (float64, int) { return r.TotalValue, r.ID }
+	case "dataFim":
+		return func(r domain.Reservation) (float64, int) { return parseDate(r.EndDate), r.ID }
+	default: 
+		return func(r domain.Reservation) (float64, int) { return parseDate(r.StartDate), r.ID }
+	}
+}
+
 func (r *ReservationFileRepository) rebuildIndexes() error {
-	r.byPropertyID.Reset()
-	r.byGuestID.Reset()
-	r.byTerm.Reset()
 	items, err := r.store.GetAll()
 	if err != nil {
 		return err
 	}
+	r.byPropertyID.Reset()
+	r.byGuestID.Reset()
+	r.byTerm.Reset()
 	for _, item := range items {
 		r.byPropertyID.Insert(item.PropertyID, int64(item.ID))
 		r.byGuestID.Insert(item.GuestID, int64(item.ID))

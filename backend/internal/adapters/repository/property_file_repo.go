@@ -1,11 +1,13 @@
 package repository
 
 import (
+	"backend/internal/adapters/sorting"
 	"backend/internal/domain"
 	"errors"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type PropertyFileRepository struct {
@@ -214,12 +216,12 @@ func (r *PropertyFileRepository) Search(ownerID *int, city string, minRate *floa
 }
 
 func (r *PropertyFileRepository) rebuildRelationIndexes() error {
-	r.byUserID.Reset()
-	r.byTerm.Reset()
 	items, err := r.store.GetAll()
 	if err != nil {
 		return err
 	}
+	r.byUserID.Reset()
+	r.byTerm.Reset()
 	for _, item := range items {
 		r.byUserID.Insert(item.UserID, int64(item.ID))
 		r.indexTermsLocked(item)
@@ -336,6 +338,42 @@ func (r *PropertyFileRepository) rebuildByUserIndex() error {
 		r.byUserID.Insert(item.UserID, int64(item.ID))
 	}
 	return r.byUserID.persistToFile()
+}
+
+func (r *PropertyFileRepository) SortFileBy(e *sorting.Engine, attr string, asc bool) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	all, err := r.store.GetAll()
+	if err != nil {
+		return err
+	}
+
+	sorted, err := sorting.SortExternal(e, "imoveis", all, propertySortKeyFn(attr), asc)
+	if err != nil {
+		return err
+	}
+
+	if err := r.store.RewriteSorted(sorted); err != nil {
+		return err
+	}
+
+	return r.rebuildRelationIndexes()
+}
+
+func propertySortKeyFn(attr string) func(domain.Property) (float64, int) {
+	switch attr {
+	case "dataCadastro":
+		return func(p domain.Property) (float64, int) {
+			t, err := time.Parse("2006-01-02", p.CreatedAt)
+			if err != nil {
+				return 0, p.ID
+			}
+			return float64(t.Unix()), p.ID
+		}
+	default:
+		return func(p domain.Property) (float64, int) { return p.DailyRate, p.ID }
+	}
 }
 
 func (r *PropertyFileRepository) syncRelationIndexesLocked() {

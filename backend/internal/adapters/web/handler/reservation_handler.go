@@ -6,9 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sort"
 	"strconv"
-	"time"
 )
 
 type createReservationRequest struct {
@@ -33,11 +31,12 @@ type confirmReservationPayload struct {
 }
 
 type ReservationHandler struct {
-	svc reservationuc.Service
+	svc    reservationuc.Service
+	sortFn func(attr string, asc bool) error
 }
 
-func NewReservationHandler(svc reservationuc.Service) *ReservationHandler {
-	return &ReservationHandler{svc: svc}
+func NewReservationHandler(svc reservationuc.Service, sortFn func(attr string, asc bool) error) *ReservationHandler {
+	return &ReservationHandler{svc: svc, sortFn: sortFn}
 }
 
 func (h *ReservationHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -64,29 +63,15 @@ func (h *ReservationHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	if sortBy := query.Get("ordenarPor"); sortBy != "" {
 		asc := query.Get("ordem") != "desc"
-		sort.Slice(filtered, func(i, j int) bool {
-			left := filtered[i]
-			right := filtered[j]
-
-			var less bool
-			switch sortBy {
-			case "valorTotal":
-				if left.TotalValue == right.TotalValue {
-					less = left.ID < right.ID
-				} else {
-					less = left.TotalValue < right.TotalValue
-				}
-			case "dataFim":
-				less = compareDateThenID(left.EndDate, right.EndDate, left.ID, right.ID)
-			default:
-				less = compareDateThenID(left.StartDate, right.StartDate, left.ID, right.ID)
-			}
-
-			if asc {
-				return less
-			}
-			return !less
-		})
+		if err := h.sortFn(sortBy, asc); err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
+		filtered, err = h.svc.List(filter)
+		if err != nil {
+			respondDomainError(w, err)
+			return
+		}
 	}
 
 	respondJSON(w, http.StatusOK, filtered)
@@ -120,23 +105,6 @@ func parseReservationListFilter(rawPropertyID, rawUserID, role, status, periodFr
 	return filter, nil
 }
 
-func compareDateThenID(leftDate string, rightDate string, leftID int, rightID int) bool {
-	leftParsed, leftErr := time.Parse("2006-01-02", leftDate)
-	rightParsed, rightErr := time.Parse("2006-01-02", rightDate)
-
-	if leftErr != nil || rightErr != nil {
-		if leftDate == rightDate {
-			return leftID < rightID
-		}
-		return leftDate < rightDate
-	}
-
-	if leftParsed.Equal(rightParsed) {
-		return leftID < rightID
-	}
-
-	return leftParsed.Before(rightParsed)
-}
 
 func firstNonEmpty(values ...string) string {
 	for _, value := range values {

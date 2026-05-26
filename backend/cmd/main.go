@@ -3,6 +3,7 @@ package main
 import (
 	"backend/internal/adapters/payment"
 	"backend/internal/adapters/repository"
+	"backend/internal/adapters/sorting"
 	web "backend/internal/adapters/web"
 	aeduc "backend/internal/usecase/aed"
 	amenityuc "backend/internal/usecase/amenity"
@@ -65,6 +66,8 @@ func main() {
 	)
 	authService := authuc.NewService(userService, propertyService)
 
+	externalSorter := sorting.NewEngine("data", 4)
+
 	if _, err := authService.SeedDefaultAdmin(); err != nil {
 		log.Fatalf("erro ao criar admin padrao: %v", err)
 	}
@@ -81,6 +84,12 @@ func main() {
 		AmenityService:         amenityService,
 		PropertyAmenityService: propertyAmenityService,
 		AEDService:             aedService,
+		SortImoveis: func(attr string, asc bool) error {
+			return propertyRepo.SortFileBy(externalSorter, attr, asc)
+		},
+		SortReservas: func(attr string, asc bool) error {
+			return reservationRepo.SortFileBy(externalSorter, attr, asc)
+		},
 	})
 
 	addr := ":8080"

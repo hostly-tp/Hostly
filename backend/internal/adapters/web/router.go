@@ -20,12 +20,14 @@ type Dependencies struct {
 	AmenityService         amenityuc.Service
 	PropertyAmenityService propertyamenityuc.Service
 	AEDService             aeduc.Service
+	SortImoveis  func(attr string, asc bool) error
+	SortReservas func(attr string, asc bool) error
 }
 
 func NewRouter(deps Dependencies) http.Handler {
-	props := handler.NewPropertyHandler(deps.PropertyService)
+	props := handler.NewPropertyHandler(deps.PropertyService, deps.SortImoveis)
 	users := handler.NewUserHandler(deps.UserService)
-	reservs := handler.NewReservationHandler(deps.ReservationService)
+	reservs := handler.NewReservationHandler(deps.ReservationService, deps.SortReservas)
 	dash := handler.NewDashboardHandler(deps.PropertyService, deps.UserService, deps.ReservationService)
 	auth := handler.NewAuthHandler(deps.AuthService)
 	amenities := handler.NewAmenityHandler(deps.AmenityService)
