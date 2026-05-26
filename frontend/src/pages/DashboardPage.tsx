@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import { ErrorMsg, Spinner } from "../components/common";
 import {
+  comodidadeService,
   imoveisService,
   reservaService,
+  type ComodidadeCatalogo,
   type Imovel,
   type Reserva,
 } from "../services/api";
@@ -91,7 +93,6 @@ function PropertyDetailPanel({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* */}
         <div>
           {imovel.fotos?.[0] ? (
             <img
@@ -106,7 +107,6 @@ function PropertyDetailPanel({
           )}
         </div>
 
-        {/* */}
         <div className="md:col-span-2 space-y-3">
           <p className="text-sm text-stone-500 leading-relaxed">
             {imovel.descricao}
@@ -198,9 +198,7 @@ function RegionMap({
   const [mapTarget, setMapTarget] = useState<[number, number] | null>(null);
   const [coords, setCoords] = useState<Record<number, [number, number]>>({});
   const geocodedIds = useRef(new Set<number>());
-  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(
-    null,
-  );
+  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
 
   const handleStartChange = (v: string) => {
     setDataInicio(v);
@@ -277,9 +275,7 @@ function RegionMap({
       }
     };
     void run();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [imoveis]);
 
   const handleSearch = async () => {
@@ -310,9 +306,7 @@ function RegionMap({
             type="text"
             value={addressInput}
             onChange={(e) => setAddressInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void handleSearch();
-            }}
+            onKeyDown={(e) => { if (e.key === "Enter") void handleSearch(); }}
             placeholder="Buscar endereço ou cidade…"
             className="h-11 bg-[var(--hostly-surface-soft)] border border-[var(--hostly-border)] rounded-xl px-3 py-2 text-sm text-[var(--hostly-text)] focus:outline-none focus:ring-2 focus:ring-[var(--hostly-focus)]"
           />
@@ -348,14 +342,12 @@ function RegionMap({
               </p>
             </div>
             <span className="text-xs text-amber-600 font-medium bg-amber-100 px-2 py-0.5 rounded-full">
-              {disponiveisCount} disponível
-              {disponiveisCount !== 1 ? "is" : ""}
+              {disponiveisCount} disponível{disponiveisCount !== 1 ? "is" : ""}
             </span>
           </div>
         </div>
       </div>
 
-      {/* */}
       <div style={{ height: 500 }}>
         <MapContainer
           center={[-15.793889, -47.882778]}
@@ -389,7 +381,6 @@ function RegionMap({
         </MapContainer>
       </div>
 
-      {/* */}
       {selectedProperty && (
         <PropertyDetailPanel
           imovel={selectedProperty}
@@ -402,6 +393,144 @@ function RegionMap({
   );
 }
 
+function FilterPanel({
+  comodidades,
+  selectedAmenities,
+  onToggleAmenity,
+  minRate,
+  maxRate,
+  onMinRate,
+  onMaxRate,
+  onApply,
+  onClear,
+  activeFiltersCount,
+}: {
+  comodidades: ComodidadeCatalogo[];
+  selectedAmenities: number[];
+  onToggleAmenity: (id: number) => void;
+  minRate: string;
+  maxRate: string;
+  onMinRate: (v: string) => void;
+  onMaxRate: (v: string) => void;
+  onApply: () => void;
+  onClear: () => void;
+  activeFiltersCount: number;
+}) {
+  return (
+    <aside className="flex flex-col gap-4 w-64 shrink-0">
+      <div className="card-elevated p-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-stone-800 tracking-tight">
+            Filtros
+          </h3>
+          {activeFiltersCount > 0 && (
+            <button
+              onClick={onClear}
+              className="text-xs text-orange-500 hover:text-orange-700 font-semibold transition-colors"
+            >
+              Limpar ({activeFiltersCount})
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">
+            Diária (R$)
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              value={minRate}
+              onChange={(e) => onMinRate(e.target.value)}
+              placeholder="Mín."
+              className="h-9 w-full bg-stone-50 border border-stone-200 rounded-xl px-3 text-sm text-stone-800 placeholder-stone-400 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all"
+            />
+            <span className="text-stone-300 font-bold shrink-0">–</span>
+            <input
+              type="number"
+              min={0}
+              value={maxRate}
+              onChange={(e) => onMaxRate(e.target.value)}
+              placeholder="Máx."
+              className="h-9 w-full bg-stone-50 border border-stone-200 rounded-xl px-3 text-sm text-stone-800 placeholder-stone-400 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all"
+            />
+          </div>
+        </div>
+
+        {comodidades.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">
+              Comodidades
+            </label>
+            <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto pr-0.5">
+              {comodidades.map((c) => {
+                const active = selectedAmenities.includes(c.idComodidade);
+                return (
+                  <button
+                    key={c.idComodidade}
+                    onClick={() => onToggleAmenity(c.idComodidade)}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-sm font-medium text-left transition-all ${
+                      active
+                        ? "bg-amber-50 border-amber-300 text-amber-800"
+                        : "bg-white border-stone-200 text-stone-600 hover:border-amber-200 hover:bg-amber-50/40"
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+                        active ? "bg-amber-500 border-amber-500" : "border-stone-300"
+                      }`}
+                    >
+                      {active && (
+                        <svg viewBox="0 0 10 8" fill="none" className="w-2.5 h-2">
+                          <path
+                            d="M1 4l3 3 5-6"
+                            stroke="white"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
+                    </span>
+                    {c.nome}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={onApply}
+          className="h-10 w-full rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-sm font-bold shadow-sm shadow-orange-200/60 transition-all active:scale-[.98]"
+        >
+          Aplicar filtros
+        </button>
+      </div>
+
+      <div className="card-elevated p-4 flex flex-col gap-2">
+        <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">
+          Legenda
+        </p>
+        {[
+          { color: "#10b981", label: "Disponível no período" },
+          { color: "#9ca3af", label: "Ocupado no período" },
+          { color: "#f59e0b", label: "Selecionado" },
+        ].map(({ color, label }) => (
+          <div key={label} className="flex items-center gap-2.5">
+            <span
+              className="w-3 h-3 rounded-full shrink-0"
+              style={{ background: color }}
+            />
+            <span className="text-xs text-stone-500">{label}</span>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
 export function DashboardPage({
   onViewDetail,
   onBook,
@@ -411,28 +540,115 @@ export function DashboardPage({
 } = {}) {
   const [imoveis, setImoveis] = useState<Imovel[]>([]);
   const [reservas, setReservas] = useState<Reserva[]>([]);
+  const [comodidades, setComodidades] = useState<ComodidadeCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filtering, setFiltering] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [draftMinRate, setDraftMinRate] = useState("");
+  const [draftMaxRate, setDraftMaxRate] = useState("");
+  const [draftAmenities, setDraftAmenities] = useState<number[]>([]);
+
+  const [appliedMinRate, setAppliedMinRate] = useState<number | undefined>();
+  const [appliedMaxRate, setAppliedMaxRate] = useState<number | undefined>();
+  const [appliedAmenities, setAppliedAmenities] = useState<number[]>([]);
+
+  const activeFiltersCount = [
+    draftMinRate !== "",
+    draftMaxRate !== "",
+    draftAmenities.length > 0,
+  ].filter(Boolean).length;
+
+  const loadImoveis = useCallback(
+    async (params?: {
+      valorDiariaMin?: number;
+      valorDiariaMax?: number;
+      comodidades?: number[];
+    }) => {
+      const data = await imoveisService.getAll({ ativo: true, ...params });
+      return data.filter((item) => item.ativo);
+    },
+    [],
+  );
+
   useEffect(() => {
-    const load = async () => {
+    const init = async () => {
       setLoading(true);
       setError(null);
       try {
-        const [imoveisData, reservasData] = await Promise.all([
-          imoveisService.getAll(),
+        const [imoveisData, reservasData, comodidadesData] = await Promise.all([
+          loadImoveis(),
           reservaService.getAll(),
+          comodidadeService.getAll(),
         ]);
-        setImoveis(imoveisData.filter((item) => item.ativo));
+        setImoveis(imoveisData);
         setReservas(reservasData);
+        setComodidades(comodidadesData.filter((c) => c.ativo));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Erro ao carregar dashboard");
       } finally {
         setLoading(false);
       }
     };
-    void load();
-  }, []);
+    void init();
+  }, [loadImoveis]);
+
+  const handleApplyFilters = async () => {
+    setFiltering(true);
+    setError(null);
+    try {
+      const params: Parameters<typeof loadImoveis>[0] = {};
+      if (draftMinRate !== "") params.valorDiariaMin = Number(draftMinRate);
+      if (draftMaxRate !== "") params.valorDiariaMax = Number(draftMaxRate);
+      if (draftAmenities.length > 0) params.comodidades = draftAmenities;
+
+      const data = await loadImoveis(params);
+      setImoveis(data);
+      setAppliedMinRate(draftMinRate !== "" ? Number(draftMinRate) : undefined);
+      setAppliedMaxRate(draftMaxRate !== "" ? Number(draftMaxRate) : undefined);
+      setAppliedAmenities(draftAmenities);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao filtrar");
+    } finally {
+      setFiltering(false);
+    }
+  };
+
+  const handleClearFilters = async () => {
+    setDraftMinRate("");
+    setDraftMaxRate("");
+    setDraftAmenities([]);
+    setFiltering(true);
+    try {
+      const data = await loadImoveis();
+      setImoveis(data);
+      setAppliedMinRate(undefined);
+      setAppliedMaxRate(undefined);
+      setAppliedAmenities([]);
+    } catch {
+      // ignore
+    } finally {
+      setFiltering(false);
+    }
+  };
+
+  const toggleAmenity = (id: number) => {
+    setDraftAmenities((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const activeSummary: string[] = [];
+  if (appliedMinRate !== undefined)
+    activeSummary.push(`Min: ${ptBrCurrency(appliedMinRate)}`);
+  if (appliedMaxRate !== undefined)
+    activeSummary.push(`Máx: ${ptBrCurrency(appliedMaxRate)}`);
+  if (appliedAmenities.length > 0) {
+    const names = appliedAmenities
+      .map((id) => comodidades.find((c) => c.idComodidade === id)?.nome ?? String(id))
+      .join(", ");
+    activeSummary.push(`Comodidades: ${names}`);
+  }
 
   if (loading) return <Spinner />;
   if (error) return <ErrorMsg msg={error} />;
@@ -440,20 +656,70 @@ export function DashboardPage({
   return (
     <div className="space-y-4">
       <div className="card-elevated p-5">
-        <h1 className="text-xl font-bold text-[var(--hostly-text)] tracking-tight">
-          Visão por região e disponibilidade
-        </h1>
-        <p className="text-sm text-[var(--hostly-muted)] mt-1">
-          Pesquise um endereço para navegar no mapa. Os imóveis aparecem como
-          pins — clique para ver detalhes e disponibilidade.
-        </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-xl font-bold text-[var(--hostly-text)] tracking-tight">
+              Visão por região e disponibilidade
+            </h1>
+            <p className="text-sm text-[var(--hostly-muted)] mt-1">
+              Pesquise um endereço para navegar no mapa. Os imóveis aparecem como
+              pins — clique para ver detalhes e disponibilidade.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="px-3 py-1.5 rounded-xl bg-stone-100 text-xs font-semibold text-stone-500">
+              {imoveis.length} imóvel{imoveis.length !== 1 ? "eis" : ""}
+            </span>
+            {filtering && (
+              <span className="flex items-center gap-1.5 text-xs text-orange-500 font-medium">
+                <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity=".25" />
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                Filtrando…
+              </span>
+            )}
+          </div>
+        </div>
+
+        {activeSummary.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap mt-3 pt-3 border-t border-stone-100">
+            <span className="text-xs text-stone-400 font-semibold">Ativos:</span>
+            {activeSummary.map((s) => (
+              <span
+                key={s}
+                className="px-2.5 py-1 rounded-full bg-orange-50 border border-orange-200 text-xs text-orange-700 font-semibold"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
-      <RegionMap
-        imoveis={imoveis}
-        reservas={reservas}
-        onViewDetail={onViewDetail}
-        onBook={onBook}
-      />
+
+      <div className="flex gap-4 items-start">
+        <FilterPanel
+          comodidades={comodidades}
+          selectedAmenities={draftAmenities}
+          onToggleAmenity={toggleAmenity}
+          minRate={draftMinRate}
+          maxRate={draftMaxRate}
+          onMinRate={setDraftMinRate}
+          onMaxRate={setDraftMaxRate}
+          onApply={() => void handleApplyFilters()}
+          onClear={() => void handleClearFilters()}
+          activeFiltersCount={activeFiltersCount}
+        />
+
+        <div className="flex-1 min-w-0">
+          <RegionMap
+            imoveis={imoveis}
+            reservas={reservas}
+            onViewDetail={onViewDetail}
+            onBook={onBook}
+          />
+        </div>
+      </div>
     </div>
   );
 }

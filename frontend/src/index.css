@@ -7,7 +7,7 @@
 	--hostly-surface: #ffffff;
 	--hostly-surface-soft: #fbfbf8;
 	--hostly-border: #e5e8de;
-	--hostly-text: #263032;
+	--hostly-text: #1e2a2c;
 	--hostly-muted: #6d7777;
 	--hostly-primary: #ea7a17;
 	--hostly-primary-strong: #c95e09;
@@ -63,8 +63,25 @@ body {
 .card-elevated {
 	background: var(--hostly-surface);
 	border: 1px solid var(--hostly-border);
-	border-radius: 18px;
-	box-shadow: 0 8px 24px rgba(31, 40, 38, 0.05);
+	border-radius: 20px;
+	box-shadow: 0 4px 16px rgba(31, 40, 38, 0.06), 0 1px 3px rgba(31,40,38,.04);
+}
+
+@keyframes fade-in {
+	from { opacity: 0; transform: translateY(6px); }
+	to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+	animation: fade-in 0.22s ease both;
+}
+
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+	animation: spin 0.75s linear infinite;
 }
 
 button,

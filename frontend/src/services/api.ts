@@ -190,6 +190,7 @@ export const imoveisService = {
     valorDiaria?: number;
     valorDiariaMin?: number;
     valorDiariaMax?: number;
+    comodidades?: number[];
   }): Promise<Imovel[]> {
     const query = new URLSearchParams();
     if (typeof params?.idUsuario === "number") {
@@ -218,6 +219,9 @@ export const imoveisService = {
     }
     if (typeof params?.valorDiariaMax === "number") {
       query.set("valorDiariaMax", String(params.valorDiariaMax));
+    }
+    if (params?.comodidades?.length) {
+      query.set("comodidades", params.comodidades.join(","));
     }
 
     const qs = query.toString();
