@@ -5,6 +5,7 @@ import {
   Field,
   FormCard,
   FormHeader,
+  PasswordStrength,
   Spinner,
   inputCls,
 } from "../components/common";
@@ -155,6 +156,11 @@ export function AnfitrioesPage({
                   required={view === "new"}
                   minLength={view === "new" ? 6 : undefined}
                 />
+                {form.senha && (
+                  <div className="mt-2">
+                    <PasswordStrength pw={form.senha} />
+                  </div>
+                )}
               </Field>
               <Field label="Perfil" required>
                 <select

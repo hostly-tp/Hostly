@@ -1,6 +1,6 @@
 import { useState } from "react";
 import logoImg from "../assets/logo.png";
-import { ErrorMsg, Field, inputCls } from "../components/common";
+import { ErrorMsg, Field, PasswordStrength, inputCls } from "../components/common";
 import { COMMON_AMENITIES } from "../constants/amenities";
 import { useComodidades } from "../hooks/useData";
 import { authService } from "../services/api";
@@ -48,39 +48,6 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
       reader.onerror = () => reject(new Error("Falha ao ler a imagem."));
       reader.readAsDataURL(file);
     });
-
-  function evaluatePassword(pw: string) {
-    let score = 0;
-    if (pw.length >= 8) score++;
-    if (/[A-Z]/.test(pw)) score++;
-    if (/[0-9]/.test(pw)) score++;
-    if (/[^A-Za-z0-9]/.test(pw)) score++;
-
-    const labels = ["Muito fraca", "Fraca", "Média", "Forte", "Muito forte"];
-    const colors = [
-      "bg-red-400",
-      "bg-rose-400",
-      "bg-amber-400",
-      "bg-lime-400",
-      "bg-green-500",
-    ];
-    return { score, label: labels[score], color: colors[score] };
-  }
-
-  const PasswordStrength = ({ pw }: { pw: string }) => {
-    const { score, label, color } = evaluatePassword(pw);
-    const percent = Math.min(100, (score / 4) * 100);
-    return (
-      <div className="space-y-1">
-        <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
-          <div className={`${color} h-2`} style={{ width: `${percent}%` }} />
-        </div>
-        <p className="text-xs text-stone-500">
-          Força: <span className="font-semibold">{label}</span>
-        </p>
-      </div>
-    );
-  };
 
   const doLogin = async (e: React.FormEvent) => {
     e.preventDefault();
