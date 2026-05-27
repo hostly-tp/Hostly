@@ -211,7 +211,9 @@ export default function Landing() {
 function ZoomControlPosition() {
   const map = useMap();
   useEffect(() => {
-    L.control.zoom({ position: "bottomright" }).addTo(map);
+    const zc = L.control.zoom({ position: "bottomright" });
+    zc.addTo(map);
+    return () => { zc.remove(); };
   }, [map]);
   return null;
 }

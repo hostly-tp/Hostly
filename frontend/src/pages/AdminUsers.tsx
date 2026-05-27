@@ -24,6 +24,7 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [editing, setEditing] = useState<Usuario | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -42,6 +43,11 @@ export default function AdminUsers() {
   }, [search]);
 
   useEffect(() => { fetch(); }, [fetch]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const openNew = () => {
     setEditing(null);
@@ -157,7 +163,7 @@ export default function AdminUsers() {
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ position: "relative" }}>
             <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--ink-4)", pointerEvents: "none" }} />
-            <input className="field-input" style={{ paddingLeft: 34 }} placeholder="Buscar usuário..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="field-input" style={{ paddingLeft: 34 }} placeholder="Buscar usuário..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
           </div>
           <button onClick={openNew} className="btn btn-primary"><Plus size={14} /> Novo usuário</button>
         </div>

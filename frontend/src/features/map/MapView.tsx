@@ -27,13 +27,11 @@ function makePinIcon(price: number, selected: boolean) {
 
 function ZoomInit({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
-  const inited = useRef(false);
   useEffect(() => {
-    if (!inited.current) {
-      map.setView(center, zoom);
-      inited.current = true;
-      L.control.zoom({ position: "bottomright" }).addTo(map);
-    }
+    map.setView(center, zoom);
+    const zc = L.control.zoom({ position: "bottomright" });
+    zc.addTo(map);
+    return () => { zc.remove(); };
   }, []);
   return null;
 }
@@ -128,13 +126,15 @@ export function useGeoProperties(properties: Imovel[]) {
   const [loading, setLoading] = useState(false);
   const queueRef = useRef<Imovel[]>([]);
   const runningRef = useRef(false);
+  const mountedRef = useRef(true);
 
   const processQueue = useCallback(async () => {
     if (runningRef.current) return;
     runningRef.current = true;
-    setLoading(true);
+    if (mountedRef.current) setLoading(true);
 
     while (queueRef.current.length > 0) {
+      if (!mountedRef.current) break;
       const p = queueRef.current.shift()!;
       if (
         p.latitude &&
@@ -142,15 +142,18 @@ export function useGeoProperties(properties: Imovel[]) {
         Math.abs(p.latitude) > 0.001 &&
         Math.abs(p.longitude) > 0.001
       ) {
-        setGeo((prev) => {
-          if (prev.find((g) => g.idImovel === p.idImovel)) return prev;
-          return [...prev, { ...p, lat: p.latitude!, lng: p.longitude! }];
-        });
+        if (mountedRef.current) {
+          setGeo((prev) => {
+            if (prev.find((g) => g.idImovel === p.idImovel)) return prev;
+            return [...prev, { ...p, lat: p.latitude!, lng: p.longitude! }];
+          });
+        }
       } else {
         try {
           await new Promise((r) => setTimeout(r, 280));
+          if (!mountedRef.current) break;
           const coords = await geocodeAddressInput(p.endereco, p.cidade);
-          if (coords) {
+          if (coords && mountedRef.current) {
             setGeo((prev) => {
               if (prev.find((g) => g.idImovel === p.idImovel)) return prev;
               return [...prev, { ...p, lat: coords[0], lng: coords[1] }];
@@ -161,7 +164,12 @@ export function useGeoProperties(properties: Imovel[]) {
     }
 
     runningRef.current = false;
-    setLoading(false);
+    if (mountedRef.current) setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
   }, []);
 
   useEffect(() => {
