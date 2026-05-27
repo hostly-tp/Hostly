@@ -17,21 +17,28 @@ type StatusFilter = "ALL" | Reserva["status"];
 export default function AdminReservations() {
   const [reservations, setReservations] = useState<Reserva[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [deleting, setDeleting] = useState<number | null>(null);
 
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await reservaService.getAll(
-        statusFilter !== "ALL" ? { status: statusFilter } : undefined,
-      );
+      const params: Parameters<typeof reservaService.getAll>[0] = {};
+      if (statusFilter !== "ALL") params.status = statusFilter;
+      if (search.trim()) params.busca = search.trim();
+      const data = await reservaService.getAll(params);
       setReservations(data);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, search]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
@@ -48,27 +55,17 @@ export default function AdminReservations() {
     }
   };
 
-  const filtered = reservations.filter((r) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      String(r.idReserva).includes(q) ||
-      String(r.idImovel).includes(q) ||
-      String(r.idHospede).includes(q)
-    );
-  });
-
   return (
     <div style={{ padding: "28px 36px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.04em", margin: "0 0 4px" }}>Reservas</h1>
-          <p style={{ fontSize: 13, color: "var(--ink-3)", margin: 0 }}>{filtered.length} reserva(s)</p>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", margin: 0 }}>{reservations.length} reserva(s)</p>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <div style={{ position: "relative" }}>
             <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--ink-4)", pointerEvents: "none" }} />
-            <input className="field-input" style={{ paddingLeft: 34 }} placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="field-input" style={{ paddingLeft: 34 }} placeholder="Buscar reserva..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
           </div>
           {(["ALL", "PENDENTE", "CONFIRMADA", "CANCELADA"] as StatusFilter[]).map((s) => (
             <button key={s} onClick={() => setStatusFilter(s)}
@@ -90,7 +87,7 @@ export default function AdminReservations() {
           <div style={{ padding: 40, textAlign: "center" }}>
             <div className="anim-spin" style={{ width: 24, height: 24, border: "3px solid var(--border)", borderTopColor: "var(--accent)", borderRadius: "50%", margin: "0 auto" }} />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : reservations.length === 0 ? (
           <div style={{ padding: 48, textAlign: "center" }}>
             <CalendarDays size={36} style={{ color: "var(--ink-5)", margin: "0 auto 12px" }} />
             <p style={{ fontSize: 14, color: "var(--ink-3)", margin: 0 }}>Nenhuma reserva encontrada.</p>
@@ -110,7 +107,7 @@ export default function AdminReservations() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => {
+              {reservations.map((r) => {
                 const { label, cls } = statusInfo(r.status);
                 return (
                   <tr key={r.idReserva}>

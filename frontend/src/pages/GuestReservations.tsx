@@ -22,16 +22,28 @@ export default function GuestReservations() {
   const [reservations, setReservations] = useState<Reserva[]>([]);
   const [properties, setProperties] = useState<Record<number, Imovel>>({});
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [cancelling, setCancelling] = useState<number | null>(null);
   const [selected, setSelected] = useState<Reserva | null>(null);
 
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const fetch = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const res = await reservaService.getByHospede(user.idUsuario);
+      const params: Parameters<typeof reservaService.getAll>[0] = {
+        idUsuario: user.idUsuario,
+        papel: "hospede",
+      };
+      if (statusFilter !== "ALL") params.status = statusFilter;
+      if (search.trim()) params.busca = search.trim();
+      const res = await reservaService.getAll(params);
       setReservations(res);
 
       const ids = [...new Set(res.map((r) => r.idImovel))];
@@ -45,23 +57,9 @@ export default function GuestReservations() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, statusFilter, search]);
 
   useEffect(() => { fetch(); }, [fetch]);
-
-  const filtered = reservations.filter((r) => {
-    if (statusFilter !== "ALL" && r.status !== statusFilter) return false;
-    if (search.trim()) {
-      const prop = properties[r.idImovel];
-      const q = search.toLowerCase();
-      return (
-        prop?.titulo.toLowerCase().includes(q) ||
-        prop?.cidade.toLowerCase().includes(q) ||
-        String(r.idReserva).includes(q)
-      );
-    }
-    return true;
-  });
 
   const handleCancel = async (r: Reserva) => {
     if (!confirm("Cancelar esta reserva?")) return;
@@ -99,9 +97,9 @@ export default function GuestReservations() {
               <input
                 className="field-input"
                 style={{ paddingLeft: 34 }}
-                placeholder="Buscar reserva..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por data, pagamento..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
               />
             </div>
             {(["ALL", "CONFIRMADA", "PENDENTE", "CANCELADA"] as StatusFilter[]).map((s) => (
@@ -133,11 +131,11 @@ export default function GuestReservations() {
                 <div key={i} style={{ height: 100, borderRadius: "var(--radius-lg)", background: "var(--canvas)" }} />
               ))}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : reservations.length === 0 ? (
             <div style={{ paddingTop: 48, textAlign: "center" }}>
               <CalendarDays size={40} style={{ color: "var(--ink-5)", margin: "0 auto 12px" }} />
               <p style={{ fontSize: 14, color: "var(--ink-3)", margin: "0 0 16px" }}>
-                {reservations.length === 0 ? "Você ainda não tem reservas." : "Nenhuma reserva encontrada."}
+                Você ainda não tem reservas.
               </p>
               <button onClick={() => navigate("/explore")} className="btn btn-primary btn-sm">
                 Explorar imóveis
@@ -145,7 +143,7 @@ export default function GuestReservations() {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 12 }}>
-              {filtered.map((r) => {
+              {reservations.map((r) => {
                 const prop = properties[r.idImovel];
                 const { label, cls } = statusInfo(r.status);
                 const isActive = selected?.idReserva === r.idReserva;

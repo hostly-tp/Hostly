@@ -10,59 +10,51 @@ function fmt(v: number) {
 
 export default function Explore() {
   const { filters, setFilters, openDetail, setSelectedProperty } = useStore();
-  const [allProperties, setAllProperties] = useState<Imovel[]>([]);
-  const [filtered, setFiltered] = useState<Imovel[]>([]);
+  const [properties, setProperties] = useState<Imovel[]>([]);
   const [amenities, setAmenities] = useState<ComodidadeCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedGeo, setSelectedGeo] = useState<GeoProperty | null>(null);
-  const { geo, loading: geoLoading } = useGeoProperties(allProperties);
+  const [searchInput, setSearchInput] = useState(filters.search);
+  const { geo, loading: geoLoading } = useGeoProperties(properties);
+
+  // Debounce search input → store filter (triggers backend fetch)
+  useEffect(() => {
+    const t = setTimeout(() => setFilters({ search: searchInput }), 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const amenityIdsKey = filters.amenityIds.join(",");
 
   const fetchProperties = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await imoveisService.getAll({ ativo: true });
-      setAllProperties(data);
+      const params: Parameters<typeof imoveisService.getAll>[0] = { ativo: true };
+      if (filters.search.trim()) params.busca = filters.search.trim();
+      if (filters.priceMin > 0) params.valorDiariaMin = filters.priceMin;
+      if (filters.priceMax < 5000) params.valorDiariaMax = filters.priceMax;
+      if (filters.amenityIds.length > 0) params.comodidades = filters.amenityIds;
+      const data = await imoveisService.getAll(params);
+      setProperties(data);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters.search, filters.priceMin, filters.priceMax, amenityIdsKey]);
 
   useEffect(() => {
     fetchProperties();
     comodidadeService.getAll().then(setAmenities).catch(() => {});
-  }, []);
+  }, [fetchProperties]);
 
-  /* filter logic */
-  useEffect(() => {
-    let list = allProperties;
-    if (filters.search.trim()) {
-      const q = filters.search.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.titulo.toLowerCase().includes(q) ||
-          p.cidade.toLowerCase().includes(q) ||
-          p.descricao?.toLowerCase().includes(q),
-      );
-    }
-    if (filters.priceMin > 0) list = list.filter((p) => p.valorDiaria >= filters.priceMin);
-    if (filters.priceMax < 5000) list = list.filter((p) => p.valorDiaria <= filters.priceMax);
-    if (filters.amenityIds.length > 0) {
-      list = list.filter((p) =>
-        filters.amenityIds.every((aid) =>
-          p.comodidades.some((c) => c.idComodidade === aid),
-        ),
-      );
-    }
-    setFiltered(list);
-  }, [allProperties, filters]);
+  const clearFilters = () => {
+    setFilters({ priceMin: 0, priceMax: 5000, amenityIds: [], search: "" });
+    setSearchInput("");
+  };
 
   const handleSelect = (p: GeoProperty | null) => {
     setSelectedGeo(p);
     setSelectedProperty(p?.idImovel ?? null);
   };
-
-  const geoFiltered = geo.filter((g) => filtered.some((f) => f.idImovel === g.idImovel));
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -97,12 +89,12 @@ export default function Explore() {
               className="field-input"
               style={{ paddingLeft: 36, paddingRight: 36 }}
               placeholder="Buscar cidade, bairro, imóvel..."
-              value={filters.search}
-              onChange={(e) => setFilters({ search: e.target.value })}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
-            {filters.search && (
+            {searchInput && (
               <button
-                onClick={() => setFilters({ search: "" })}
+                onClick={() => { setSearchInput(""); setFilters({ search: "" }); }}
                 style={{
                   position: "absolute",
                   right: 12,
@@ -231,9 +223,7 @@ export default function Explore() {
             )}
 
             <button
-              onClick={() => {
-                setFilters({ priceMin: 0, priceMax: 5000, amenityIds: [], search: "" });
-              }}
+              onClick={clearFilters}
               style={{
                 alignSelf: "flex-start",
                 fontSize: 12,
@@ -258,13 +248,13 @@ export default function Explore() {
             borderBottom: "1px solid var(--border)",
           }}
         >
-          {loading ? "Carregando..." : `${filtered.length} imóvel(is) encontrado(s)`}
+          {loading ? "Carregando..." : `${properties.length} imóvel(is) encontrado(s)`}
           {geoLoading && " · Localizando no mapa..."}
         </div>
 
         {/* Property list */}
         <div style={{ flex: 1, overflowY: "auto" }}>
-          {filtered.map((p) => (
+          {properties.map((p) => (
             <PropertyListItem
               key={p.idImovel}
               property={p}
@@ -272,12 +262,12 @@ export default function Explore() {
               onSelect={() => openDetail(p.idImovel)}
             />
           ))}
-          {!loading && filtered.length === 0 && (
+          {!loading && properties.length === 0 && (
             <div style={{ padding: 32, textAlign: "center", color: "var(--ink-4)", fontSize: 13 }}>
               Nenhum imóvel encontrado.
               <br />
               <button
-                onClick={() => setFilters({ priceMin: 0, priceMax: 5000, amenityIds: [], search: "" })}
+                onClick={clearFilters}
                 style={{ color: "var(--accent)", background: "none", border: "none", fontWeight: 600, marginTop: 8, fontSize: 13 }}
               >
                 Limpar filtros
@@ -290,13 +280,12 @@ export default function Explore() {
       {/* Map */}
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         <MapView
-          properties={geoFiltered}
+          properties={geo}
           loading={geoLoading}
           onSelect={handleSelect}
           selectedId={selectedGeo?.idImovel}
         />
 
-        {/* Selected preview card */}
         {selectedGeo && (
           <PropertyPreviewCard
             property={selectedGeo}
