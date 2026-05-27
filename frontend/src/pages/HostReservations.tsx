@@ -23,6 +23,8 @@ export default function HostReservations() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [periodoDe, setPeriodoDe] = useState("");
+  const [periodoAte, setPeriodoAte] = useState("");
   const [selected, setSelected] = useState<Reserva | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
   const [cancelling, setCancelling] = useState<number | null>(null);
@@ -42,6 +44,8 @@ export default function HostReservations() {
       };
       if (statusFilter !== "ALL") params.status = statusFilter;
       if (search.trim()) params.busca = search.trim();
+      if (periodoDe) params.periodoDe = periodoDe;
+      if (periodoAte) params.periodoAte = periodoAte;
       const res = await reservaService.getAll(params);
       setReservations(res);
 
@@ -52,7 +56,7 @@ export default function HostReservations() {
     } finally {
       setLoading(false);
     }
-  }, [user, statusFilter, search]);
+  }, [user, statusFilter, search, periodoDe, periodoAte]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
@@ -100,6 +104,8 @@ export default function HostReservations() {
               <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--ink-4)", pointerEvents: "none" }} />
               <input className="field-input" style={{ paddingLeft: 34 }} placeholder="Buscar por data, pagamento..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
             </div>
+            <input className="field-input" type="date" value={periodoDe} onChange={(e) => setPeriodoDe(e.target.value)} title="De" style={{ width: 148 }} />
+            <input className="field-input" type="date" value={periodoAte} onChange={(e) => setPeriodoAte(e.target.value)} title="Até" style={{ width: 148 }} />
             {(["ALL", "PENDENTE", "CONFIRMADA", "CANCELADA"] as StatusFilter[]).map((s) => (
               <button key={s} onClick={() => setStatusFilter(s)}
                 style={{
