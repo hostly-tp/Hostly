@@ -126,12 +126,19 @@ func (r *PropertyAmenityFileRepository) Delete(propertyID, amenityID int) error 
 }
 
 func (r *PropertyAmenityFileRepository) DeleteByPropertyID(propertyID int) error {
-	items, err := r.GetByPropertyID(propertyID)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	offsets, ok := r.byPropertyID.Get(propertyID)
+	if !ok {
+		return nil
+	}
+	items, err := r.loadByOffsetsLocked(offsets)
 	if err != nil {
 		return err
 	}
 	for _, item := range items {
-		if err := r.Delete(item.PropertyID, item.AmenityID); err != nil && !errors.Is(err, domain.ErrNotFound) {
+		if err := r.deleteLocked(item.PropertyID, item.AmenityID); err != nil && !errors.Is(err, domain.ErrNotFound) {
 			return err
 		}
 	}
@@ -139,12 +146,19 @@ func (r *PropertyAmenityFileRepository) DeleteByPropertyID(propertyID int) error
 }
 
 func (r *PropertyAmenityFileRepository) DeleteByAmenityID(amenityID int) error {
-	items, err := r.GetByAmenityID(amenityID)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	offsets, ok := r.byAmenityID.Get(amenityID)
+	if !ok {
+		return nil
+	}
+	items, err := r.loadByOffsetsLocked(offsets)
 	if err != nil {
 		return err
 	}
 	for _, item := range items {
-		if err := r.Delete(item.PropertyID, item.AmenityID); err != nil && !errors.Is(err, domain.ErrNotFound) {
+		if err := r.deleteLocked(item.PropertyID, item.AmenityID); err != nil && !errors.Is(err, domain.ErrNotFound) {
 			return err
 		}
 	}
