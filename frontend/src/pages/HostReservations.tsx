@@ -20,18 +20,31 @@ export default function HostReservations() {
   const [reservations, setReservations] = useState<Reserva[]>([]);
   const [properties, setProperties] = useState<Record<number, Imovel>>({});
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [selected, setSelected] = useState<Reserva | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
   const [cancelling, setCancelling] = useState<number | null>(null);
 
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const fetch = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const res = await reservaService.getByAnfitriao(user.idUsuario);
+      const params: Parameters<typeof reservaService.getAll>[0] = {
+        idUsuario: user.idUsuario,
+        papel: "anfitriao",
+      };
+      if (statusFilter !== "ALL") params.status = statusFilter;
+      if (search.trim()) params.busca = search.trim();
+      const res = await reservaService.getAll(params);
       setReservations(res);
+
       const ids = [...new Set(res.map((r) => r.idImovel))];
       const map: Record<number, Imovel> = {};
       await Promise.all(ids.map((id) => imoveisService.getById(id).then((p) => { map[id] = p; }).catch(() => {})));
@@ -39,23 +52,9 @@ export default function HostReservations() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, statusFilter, search]);
 
   useEffect(() => { fetch(); }, [fetch]);
-
-  const filtered = reservations.filter((r) => {
-    if (statusFilter !== "ALL" && r.status !== statusFilter) return false;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      const prop = properties[r.idImovel];
-      return (
-        prop?.titulo.toLowerCase().includes(q) ||
-        prop?.cidade.toLowerCase().includes(q) ||
-        String(r.idReserva).includes(q)
-      );
-    }
-    return true;
-  });
 
   const handleConfirm = async (r: Reserva) => {
     setConfirming(r.idReserva);
@@ -99,7 +98,7 @@ export default function HostReservations() {
           <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
             <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
               <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--ink-4)", pointerEvents: "none" }} />
-              <input className="field-input" style={{ paddingLeft: 34 }} placeholder="Buscar reserva ou imóvel..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              <input className="field-input" style={{ paddingLeft: 34 }} placeholder="Buscar por data, pagamento..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
             </div>
             {(["ALL", "PENDENTE", "CONFIRMADA", "CANCELADA"] as StatusFilter[]).map((s) => (
               <button key={s} onClick={() => setStatusFilter(s)}
@@ -121,16 +120,16 @@ export default function HostReservations() {
             <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 12 }}>
               {[1, 2, 3].map((i) => <div key={i} style={{ height: 96, borderRadius: "var(--radius-lg)", background: "var(--canvas)" }} />)}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : reservations.length === 0 ? (
             <div style={{ paddingTop: 48, textAlign: "center" }}>
               <CalendarDays size={40} style={{ color: "var(--ink-5)", margin: "0 auto 12px" }} />
               <p style={{ fontSize: 14, color: "var(--ink-3)", margin: 0 }}>
-                {reservations.length === 0 ? "Nenhuma reserva recebida ainda." : "Nenhuma reserva encontrada."}
+                Nenhuma reserva encontrada.
               </p>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 12 }}>
-              {filtered.map((r) => {
+              {reservations.map((r) => {
                 const prop = properties[r.idImovel];
                 const { label, cls } = statusInfo(r.status);
                 const isActive = selected?.idReserva === r.idReserva;
