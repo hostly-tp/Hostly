@@ -501,6 +501,46 @@ export const comodidadeService = {
   },
 };
 
+export type EntidadeCompactavel = "imoveis" | "usuarios" | "reservas";
+export type AlgoritmoCompressao = "huffman" | "lzw";
+
+export interface CompressaoResult {
+  algoritmo: AlgoritmoCompressao;
+  tamanhoOriginal: number;
+  tamanhoComprimido: number;
+  taxa: number;
+  dadosComprimidos: string;
+}
+
+export interface DescompressaoResult {
+  algoritmo: AlgoritmoCompressao;
+  tamanhoOriginal: number;
+  tamanhoRestaurado: number;
+  verificado: boolean;
+}
+
+export const compressaoService = {
+  async compress(
+    entidade: EntidadeCompactavel,
+    algoritmo: AlgoritmoCompressao,
+  ): Promise<CompressaoResult> {
+    return request<CompressaoResult>("/compressao", {
+      method: "POST",
+      body: JSON.stringify({ entidade, algoritmo }),
+    });
+  },
+  async decompress(
+    algoritmo: AlgoritmoCompressao,
+    dadosComprimidos: string,
+    tamanhoOriginal: number,
+  ): Promise<DescompressaoResult> {
+    return request<DescompressaoResult>("/descompressao", {
+      method: "POST",
+      body: JSON.stringify({ algoritmo, dadosComprimidos, tamanhoOriginal }),
+    });
+  },
+};
+
 export const authService = {
   async login(email: string, senha: string): Promise<Session> {
     const session = await request<Session>("/auth/login", {
