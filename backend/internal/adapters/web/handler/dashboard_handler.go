@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"net/http"
 	"backend/internal/usecase/property"
 	reservationuc "backend/internal/usecase/reservation"
 	useruc "backend/internal/usecase/user"
+	"net/http"
 )
 
 type dashboardStats struct {
@@ -47,8 +47,8 @@ func (h *DashboardHandler) Stats(w http.ResponseWriter, r *http.Request) {
 
 	stats := dashboardStats{
 		TotalProperties: len(properties),
-		TotalHosts:     len(hosts),
-		TotalBookings: len(reservations),
+		TotalHosts:      len(hosts),
+		TotalBookings:   len(reservations),
 	}
 
 	for _, res := range reservations {

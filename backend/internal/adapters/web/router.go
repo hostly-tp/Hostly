@@ -1,6 +1,7 @@
 package web
 
 import (
+	"backend/internal/adapters/compression"
 	"backend/internal/adapters/web/handler"
 	aeduc "backend/internal/usecase/aed"
 	amenityuc "backend/internal/usecase/amenity"
@@ -20,8 +21,9 @@ type Dependencies struct {
 	AmenityService         amenityuc.Service
 	PropertyAmenityService propertyamenityuc.Service
 	AEDService             aeduc.Service
-	SortImoveis  func(attr string, asc bool) error
-	SortReservas func(attr string, asc bool) error
+	Compressor             *compression.Engine
+	SortImoveis            func(attr string, asc bool) error
+	SortReservas           func(attr string, asc bool) error
 }
 
 func NewRouter(deps Dependencies) http.Handler {
@@ -33,6 +35,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	amenities := handler.NewAmenityHandler(deps.AmenityService)
 	propertyAmenities := handler.NewPropertyAmenityHandler(deps.PropertyAmenityService)
 	aed := handler.NewAEDHandler(deps.AEDService)
+	compress := handler.NewCompressionHandler(deps.Compressor)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -69,6 +72,9 @@ func NewRouter(deps Dependencies) http.Handler {
 
 	mux.HandleFunc("GET /aed/diagnostico", aed.Diagnostico)
 	mux.HandleFunc("GET /aed/anfitriao/{id}", aed.RelacaoAnfitriao)
+
+	mux.HandleFunc("POST /compressao", compress.Compress)
+	mux.HandleFunc("POST /descompressao", compress.Decompress)
 
 	mux.HandleFunc("GET /dashboard/stats", dash.Stats)
 	mux.HandleFunc("POST /imoveis-comodidades", propertyAmenities.Create)

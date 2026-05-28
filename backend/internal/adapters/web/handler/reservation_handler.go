@@ -100,7 +100,6 @@ func parseReservationListFilter(rawPropertyID, rawUserID, role, status, periodFr
 	return filter, nil
 }
 
-
 func firstNonEmpty(values ...string) string {
 	for _, value := range values {
 		if value != "" {
