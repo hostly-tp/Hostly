@@ -55,23 +55,18 @@ func (h *ReservationHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filtered, err := h.svc.List(filter)
-	if err != nil {
-		respondDomainError(w, err)
-		return
-	}
-
 	if sortBy := query.Get("ordenarPor"); sortBy != "" {
 		asc := query.Get("ordem") != "desc"
 		if err := h.sortFn(sortBy, asc); err != nil {
 			respondError(w, http.StatusInternalServerError, err)
 			return
 		}
-		filtered, err = h.svc.List(filter)
-		if err != nil {
-			respondDomainError(w, err)
-			return
-		}
+	}
+
+	filtered, err := h.svc.List(filter)
+	if err != nil {
+		respondDomainError(w, err)
+		return
 	}
 
 	respondJSON(w, http.StatusOK, filtered)
@@ -104,7 +99,6 @@ func parseReservationListFilter(rawPropertyID, rawUserID, role, status, periodFr
 	}
 	return filter, nil
 }
-
 
 func firstNonEmpty(values ...string) string {
 	for _, value := range values {

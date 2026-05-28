@@ -126,7 +126,11 @@ func (s *service) List(filter ListFilter) ([]domain.Property, error) {
 		if err != nil {
 			return nil, err
 		}
-		return s.hydrateProperties(items)
+		hydrated, err := s.hydrateProperties(items)
+		if err != nil {
+			return nil, err
+		}
+		return filterByAmenities(hydrated, filter.AmenityIDs), nil
 	}
 
 	all, err := s.repo.GetAll()
@@ -160,7 +164,37 @@ func (s *service) List(filter ListFilter) ([]domain.Property, error) {
 		}
 		filtered = append(filtered, item)
 	}
-	return s.hydrateProperties(filtered)
+	hydrated, err := s.hydrateProperties(filtered)
+	if err != nil {
+		return nil, err
+	}
+	return filterByAmenities(hydrated, filter.AmenityIDs), nil
+}
+
+func filterByAmenities(items []domain.Property, amenityIDs []int) []domain.Property {
+	if len(amenityIDs) == 0 {
+		return items
+	}
+	result := make([]domain.Property, 0, len(items))
+	for _, item := range items {
+		if propertyHasAllAmenities(item, amenityIDs) {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func propertyHasAllAmenities(item domain.Property, amenityIDs []int) bool {
+	present := make(map[int]struct{}, len(item.Amenities))
+	for _, a := range item.Amenities {
+		present[a.ID] = struct{}{}
+	}
+	for _, id := range amenityIDs {
+		if _, ok := present[id]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *service) Update(id int, item domain.Property) (domain.Property, error) {

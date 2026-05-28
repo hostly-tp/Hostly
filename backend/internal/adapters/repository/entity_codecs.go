@@ -261,12 +261,11 @@ func decodePropertyFromStandard(fields map[uint8][]byte, id int) (domain.Propert
 func decodePropertyLegacy(payload []byte, id int) (domain.Property, error) {
 	reader := bytes.NewReader(payload)
 	var item domain.Property
+	item.ID = id
 
-	legacyID, err := readInt32(reader)
-	if err != nil {
+	if _, err := readInt32(reader); err != nil { // skip legacy inline ID
 		return domain.Property{}, err
 	}
-	item.ID = int(legacyID)
 
 	userID, err := readInt32(reader)
 	if err != nil {
@@ -414,13 +413,13 @@ func decodeUserFromStandard(fields map[uint8][]byte, id int) (domain.User, error
 func decodeUserLegacy(payload []byte, id int) (domain.User, error) {
 	reader := bytes.NewReader(payload)
 	var item domain.User
+	item.ID = id
 
-	legacyID, err := readInt32(reader)
-	if err != nil {
+	if _, err := readInt32(reader); err != nil { // skip legacy inline ID
 		return domain.User{}, err
 	}
-	item.ID = int(legacyID)
 
+	var err error
 	item.Name, err = readString(reader)
 	if err != nil {
 		return domain.User{}, err
@@ -552,12 +551,11 @@ func decodeReservationFromStandard(fields map[uint8][]byte, id int) (domain.Rese
 func decodeReservationLegacy(payload []byte, id int) (domain.Reservation, error) {
 	reader := bytes.NewReader(payload)
 	var item domain.Reservation
+	item.ID = id
 
-	legacyID, err := readInt32(reader)
-	if err != nil {
+	if _, err := readInt32(reader); err != nil { // skip legacy inline ID
 		return domain.Reservation{}, err
 	}
-	item.ID = int(legacyID)
 
 	propertyID, err := readInt32(reader)
 	if err != nil {

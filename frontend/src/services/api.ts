@@ -190,6 +190,7 @@ export const imoveisService = {
     valorDiaria?: number;
     valorDiariaMin?: number;
     valorDiariaMax?: number;
+    comodidades?: number[];
   }): Promise<Imovel[]> {
     const query = new URLSearchParams();
     if (typeof params?.idUsuario === "number") {
@@ -218,6 +219,9 @@ export const imoveisService = {
     }
     if (typeof params?.valorDiariaMax === "number") {
       query.set("valorDiariaMax", String(params.valorDiariaMax));
+    }
+    if (params?.comodidades?.length) {
+      query.set("comodidades", params.comodidades.join(","));
     }
 
     const qs = query.toString();
@@ -494,6 +498,46 @@ export const comodidadeService = {
       `/imoveis-comodidades/imovel/${idImovel}/comodidade/${idComodidade}`,
       { method: "DELETE" },
     );
+  },
+};
+
+export type EntidadeCompactavel = "imoveis" | "usuarios" | "reservas";
+export type AlgoritmoCompressao = "huffman" | "lzw";
+
+export interface CompressaoResult {
+  algoritmo: AlgoritmoCompressao;
+  tamanhoOriginal: number;
+  tamanhoComprimido: number;
+  taxa: number;
+  dadosComprimidos: string;
+}
+
+export interface DescompressaoResult {
+  algoritmo: AlgoritmoCompressao;
+  tamanhoOriginal: number;
+  tamanhoRestaurado: number;
+  verificado: boolean;
+}
+
+export const compressaoService = {
+  async compress(
+    entidade: EntidadeCompactavel,
+    algoritmo: AlgoritmoCompressao,
+  ): Promise<CompressaoResult> {
+    return request<CompressaoResult>("/compressao", {
+      method: "POST",
+      body: JSON.stringify({ entidade, algoritmo }),
+    });
+  },
+  async decompress(
+    algoritmo: AlgoritmoCompressao,
+    dadosComprimidos: string,
+    tamanhoOriginal: number,
+  ): Promise<DescompressaoResult> {
+    return request<DescompressaoResult>("/descompressao", {
+      method: "POST",
+      body: JSON.stringify({ algoritmo, dadosComprimidos, tamanhoOriginal }),
+    });
   },
 };
 

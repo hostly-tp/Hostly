@@ -81,6 +81,7 @@ func (h *PropertyHandler) List(w http.ResponseWriter, r *http.Request) {
 		query.Get("valorDiariaMax"),
 		query.Get("busca"),
 		query.Get("ativo"),
+		query.Get("comodidades"),
 	)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err)
@@ -104,7 +105,7 @@ func (h *PropertyHandler) List(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, filtered)
 }
 
-func parsePropertyListFilter(ownerIDRaw, cityRaw, minRateRaw, maxRateRaw, queryRaw, activeRaw string) (property.ListFilter, error) {
+func parsePropertyListFilter(ownerIDRaw, cityRaw, minRateRaw, maxRateRaw, queryRaw, activeRaw, amenityIDsRaw string) (property.ListFilter, error) {
 	filter := property.ListFilter{
 		City:  cityRaw,
 		Query: queryRaw,
@@ -137,6 +138,19 @@ func parsePropertyListFilter(ownerIDRaw, cityRaw, minRateRaw, maxRateRaw, queryR
 		}
 		if !onlyActive {
 			filter.IncludeInactive = true
+		}
+	}
+	if amenityIDsRaw != "" {
+		for _, part := range strings.Split(amenityIDsRaw, ",") {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			id, err := strconv.Atoi(part)
+			if err != nil {
+				return property.ListFilter{}, fmt.Errorf("comodidade inválida: %s", part)
+			}
+			filter.AmenityIDs = append(filter.AmenityIDs, id)
 		}
 	}
 	return filter, nil

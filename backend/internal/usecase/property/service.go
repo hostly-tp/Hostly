@@ -9,6 +9,7 @@ type ListFilter struct {
 	MaxDailyRate    *float64
 	Query           string
 	IncludeInactive bool
+	AmenityIDs      []int
 }
 
 type Service interface {
