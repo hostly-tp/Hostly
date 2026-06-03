@@ -319,6 +319,7 @@ Mapeia uma chave a **múltiplos valores** (`key → []int64`). Persiste em `.rid
 
 Mesma estrutura multi-valor, com a chave sendo o hash **FNV-32a** do token normalizado:
 
+**Split ao encher um bucket:**
 ```
 token "praia"        → FNV-32a → entrada no índice → []idImovel
 token "florianopolis"→ FNV-32a → entrada no índice → []idImovel
@@ -332,7 +333,9 @@ token "florianopolis"→ FNV-32a → entrada no índice → []idImovel
 
 Busca com múltiplos tokens faz **intersecção** dos conjuntos resultantes.
 
----
+### Camada 2 — Hash multi-valor (1:N)
+
+Arquivo: `relation_extensible_hash.go`
 
 ## Árvore B+
 
@@ -353,6 +356,14 @@ Isso garante que todas as chaves de um mesmo imóvel formem um intervalo contíg
 - `Range(minKey, maxKey)` — retorna todos os offsets no intervalo
 
 A B+ é mantida **em memória** e reconstruída a partir dos arquivos a cada inicialização do servidor.
+
+| Arquivo                      | Entidade   |
+|------------------------------|------------|
+| `imoveis.db.byterm.ridx`     | Imóveis    |
+| `reservas.db.byterm.ridx`    | Reservas   |
+| `usuarios.db.byterm.ridx`    | Usuários   |
+
+Busca com múltiplos tokens faz **intersecção** dos conjuntos resultantes.
 
 ---
 
