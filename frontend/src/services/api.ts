@@ -543,35 +543,6 @@ export const backupService = {
   },
 };
 
-export interface BuscaPadroesMatch {
-  campo: string;
-  posicao: number;
-}
-
-export interface BuscaPadroesRecordMatch {
-  id: number;
-  preview: string;
-  ocorrenciasBM: BuscaPadroesMatch[];
-  ocorrenciasKMP: BuscaPadroesMatch[];
-}
-
-export interface BuscaPadroesResult {
-  padrao: string;
-  entidade: string;
-  totalRegistros: number;
-  resultados: BuscaPadroesRecordMatch[];
-  tempoMs_BM: number;
-  tempoMs_KMP: number;
-}
-
-export const buscaPadroesService = {
-  async search(q: string, entidade: string): Promise<BuscaPadroesResult> {
-    return request<BuscaPadroesResult>(
-      `/busca/padrao?q=${encodeURIComponent(q)}&entidade=${encodeURIComponent(entidade)}`,
-    );
-  },
-};
-
 export const authService = {
   async login(email: string, senha: string): Promise<Session> {
     const session = await request<Session>("/auth/login", {
