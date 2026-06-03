@@ -107,7 +107,7 @@ Hostly/
 │   │   │   │   ├── huffman.go                   # Huffman encode/decode
 │   │   │   │   ├── lzw.go                       # LZW encode/decode
 │   │   │   │   ├── archive.go                   # Empacotamento multi-arquivo (formato HLTB)
-│   │   │   │   └── engine.go                    # Orquestrador (Compress/Decompress)
+│   │   │   │   └── engine.go                    # Orquestrador (CompressRaw/DecompressRaw)
 │   │   │   ├── patternmatch/                    # Casamento de padrões
 │   │   │   │   ├── kmp.go                       # KMP (tabela de falha + busca)
 │   │   │   │   ├── bm.go                        # Boyer-Moore (bad-char + busca)
