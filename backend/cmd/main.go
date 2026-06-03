@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/internal/adapters/compression"
+	"backend/internal/adapters/patternmatch"
 	"backend/internal/adapters/payment"
 	"backend/internal/adapters/repository"
 	"backend/internal/adapters/sorting"
@@ -69,6 +70,7 @@ func main() {
 
 	externalSorter := sorting.NewEngine("data", 4)
 	compressor := compression.NewEngine()
+	matcher := patternmatch.NewEngine()
 
 	if _, err := authService.SeedDefaultAdmin(); err != nil {
 		log.Fatalf("erro ao criar admin padrao: %v", err)
@@ -87,6 +89,7 @@ func main() {
 		PropertyAmenityService: propertyAmenityService,
 		AEDService:             aedService,
 		Compressor:             compressor,
+		PatternMatcher:         matcher,
 		SortImoveis: func(attr string, asc bool) error {
 			return propertyRepo.SortFileBy(externalSorter, attr, asc)
 		},

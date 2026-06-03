@@ -2,6 +2,7 @@ package web
 
 import (
 	"backend/internal/adapters/compression"
+	"backend/internal/adapters/patternmatch"
 	"backend/internal/adapters/web/handler"
 	aeduc "backend/internal/usecase/aed"
 	amenityuc "backend/internal/usecase/amenity"
@@ -22,6 +23,7 @@ type Dependencies struct {
 	PropertyAmenityService propertyamenityuc.Service
 	AEDService             aeduc.Service
 	Compressor             *compression.Engine
+	PatternMatcher         *patternmatch.Engine
 	SortImoveis            func(attr string, asc bool) error
 	SortReservas           func(attr string, asc bool) error
 }
@@ -36,6 +38,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	propertyAmenities := handler.NewPropertyAmenityHandler(deps.PropertyAmenityService)
 	aed := handler.NewAEDHandler(deps.AEDService)
 	compress := handler.NewCompressionHandler(deps.Compressor)
+	pm := handler.NewPatternMatchHandler(deps.PatternMatcher, deps.PropertyService, deps.UserService, deps.ReservationService)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -75,6 +78,7 @@ func NewRouter(deps Dependencies) http.Handler {
 
 	mux.HandleFunc("POST /compressao", compress.Compress)
 	mux.HandleFunc("POST /descompressao", compress.Decompress)
+	mux.HandleFunc("GET /busca/padrao", pm.Search)
 
 	mux.HandleFunc("GET /dashboard/stats", dash.Stats)
 	mux.HandleFunc("POST /imoveis-comodidades", propertyAmenities.Create)
