@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"backend/internal/adapters/patternmatch"
 	"backend/internal/domain"
 	useruc "backend/internal/usecase/user"
 	"encoding/json"
@@ -28,10 +29,11 @@ type userUpdatePayload struct {
 
 type UserHandler struct {
 	svc useruc.Service
+	pm  *patternmatch.Engine
 }
 
-func NewUserHandler(svc useruc.Service) *UserHandler {
-	return &UserHandler{svc: svc}
+func NewUserHandler(svc useruc.Service, pm *patternmatch.Engine) *UserHandler {
+	return &UserHandler{svc: svc, pm: pm}
 }
 
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -80,13 +82,27 @@ func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
-	users, err := h.svc.List(useruc.ListFilter{
-		Query: r.URL.Query().Get("busca"),
-	})
+	busca := r.URL.Query().Get("busca")
+	users, err := h.svc.List(useruc.ListFilter{Query: busca})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
+
+	// BM post-filter on name and email when a text query is present.
+	if q := busca; q != "" {
+		var matched []domain.User
+		for _, u := range users {
+			if patternmatch.MatchBM(u.Name, q) || patternmatch.MatchBM(u.Email, q) {
+				matched = append(matched, u)
+			}
+		}
+		if matched == nil {
+			matched = []domain.User{}
+		}
+		users = matched
+	}
+
 	respondJSON(w, http.StatusOK, users)
 }
 

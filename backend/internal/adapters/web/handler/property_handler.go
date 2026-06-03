@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"backend/internal/adapters/patternmatch"
 	"backend/internal/domain"
 	"backend/internal/usecase/property"
 	"encoding/json"
@@ -66,10 +67,11 @@ type propertyUpdatePayload struct {
 type PropertyHandler struct {
 	svc    property.Service
 	sortFn func(attr string, asc bool) error
+	pm     *patternmatch.Engine
 }
 
-func NewPropertyHandler(svc property.Service, sortFn func(attr string, asc bool) error) *PropertyHandler {
-	return &PropertyHandler{svc: svc, sortFn: sortFn}
+func NewPropertyHandler(svc property.Service, sortFn func(attr string, asc bool) error, pm *patternmatch.Engine) *PropertyHandler {
+	return &PropertyHandler{svc: svc, sortFn: sortFn, pm: pm}
 }
 
 func (h *PropertyHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -100,6 +102,23 @@ func (h *PropertyHandler) List(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respondDomainError(w, err)
 		return
+	}
+
+	// BM post-filter: apply Boyer-Moore substring matching on text fields when a
+	// text query is present. The token-index search is the fast first pass; BM
+	// ensures exact substring semantics on the candidate set.
+	if q := strings.TrimSpace(filter.Query); q != "" {
+		matched := filtered[:0]
+		for _, p := range filtered {
+			if patternmatch.MatchBM(p.Title, q) ||
+				patternmatch.MatchBM(p.Description, q) ||
+				patternmatch.MatchBM(p.City, q) ||
+				patternmatch.MatchBM(p.Address.Street, q) ||
+				patternmatch.MatchBM(p.Address.Neighborhood, q) {
+				matched = append(matched, p)
+			}
+		}
+		filtered = matched
 	}
 
 	respondJSON(w, http.StatusOK, filtered)

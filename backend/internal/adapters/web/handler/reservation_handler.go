@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"backend/internal/adapters/patternmatch"
 	"backend/internal/domain"
 	reservationuc "backend/internal/usecase/reservation"
 	"encoding/json"
@@ -33,10 +34,11 @@ type confirmReservationPayload struct {
 type ReservationHandler struct {
 	svc    reservationuc.Service
 	sortFn func(attr string, asc bool) error
+	pm     *patternmatch.Engine
 }
 
-func NewReservationHandler(svc reservationuc.Service, sortFn func(attr string, asc bool) error) *ReservationHandler {
-	return &ReservationHandler{svc: svc, sortFn: sortFn}
+func NewReservationHandler(svc reservationuc.Service, sortFn func(attr string, asc bool) error, pm *patternmatch.Engine) *ReservationHandler {
+	return &ReservationHandler{svc: svc, sortFn: sortFn, pm: pm}
 }
 
 func (h *ReservationHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -69,6 +71,22 @@ func (h *ReservationHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// BM post-filter on status and date fields when a text query is present.
+	if q := filter.Query; q != "" {
+		var matched []domain.Reservation
+		for _, res := range filtered {
+			if patternmatch.MatchBM(string(res.Status), q) ||
+				patternmatch.MatchBM(res.StartDate, q) ||
+				patternmatch.MatchBM(res.EndDate, q) {
+				matched = append(matched, res)
+			}
+		}
+		if matched == nil {
+			matched = []domain.Reservation{}
+		}
+		filtered = matched
+	}
+
 	respondJSON(w, http.StatusOK, filtered)
 }
 
@@ -99,7 +117,6 @@ func parseReservationListFilter(rawPropertyID, rawUserID, role, status, periodFr
 	}
 	return filter, nil
 }
-
 
 func firstNonEmpty(values ...string) string {
 	for _, value := range values {

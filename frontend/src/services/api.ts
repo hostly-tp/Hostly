@@ -501,6 +501,48 @@ export const comodidadeService = {
   },
 };
 
+export type AlgoritmoCompressao = "huffman" | "lzw";
+
+export interface BackupResult {
+  arquivo: string;
+  algoritmo: AlgoritmoCompressao;
+  arquivos: string[];
+  tamanhoTotal: number;
+  tamanhoBackup: number;
+  taxa: number;
+}
+
+export interface BackupInfo {
+  arquivo: string;
+  algoritmo: string;
+  tamanho: number;
+  criadoEm: string;
+}
+
+export interface RestoreResult {
+  arquivo: string;
+  algoritmo: string;
+  arquivos: string[];
+}
+
+export const backupService = {
+  async create(algoritmo: AlgoritmoCompressao): Promise<BackupResult> {
+    return request<BackupResult>("/backup", {
+      method: "POST",
+      body: JSON.stringify({ algoritmo }),
+    });
+  },
+  async list(): Promise<BackupInfo[]> {
+    return request<BackupInfo[]>("/backups");
+  },
+  async restore(arquivo: string): Promise<RestoreResult> {
+    return request<RestoreResult>("/restaurar", {
+      method: "POST",
+      body: JSON.stringify({ arquivo }),
+    });
+  },
+};
+
 export const authService = {
   async login(email: string, senha: string): Promise<Session> {
     const session = await request<Session>("/auth/login", {

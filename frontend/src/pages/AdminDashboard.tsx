@@ -1,19 +1,51 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Users, CalendarDays, TrendingUp, ArrowRight, Sparkles, Activity } from "lucide-react";
-import { dashboardService, type DashboardStats } from "../services/api";
+import {
+  Building2,
+  Users,
+  CalendarDays,
+  TrendingUp,
+  ArrowRight,
+  Sparkles,
+  Activity,
+  FileArchive,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
+import {
+  dashboardService,
+  backupService,
+  type DashboardStats,
+  type BackupInfo,
+} from "../services/api";
 
 function fmt(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+}
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [latestBackup, setLatestBackup] = useState<BackupInfo | null>(null);
+  const [backupCount, setBackupCount] = useState(0);
 
   useEffect(() => {
     dashboardService.getStats().then(setStats).finally(() => setLoading(false));
+    backupService.list().then((list) => {
+      setBackupCount(list.length);
+      if (list.length > 0) {
+        // Most recent backup is the last alphabetically (timestamp in filename)
+        const sorted = [...list].sort((a, b) => b.arquivo.localeCompare(a.arquivo));
+        setLatestBackup(sorted[0]);
+      }
+    }).catch(() => {/* ignore */});
   }, []);
 
   const sections = [
@@ -151,10 +183,93 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Data integrity / backup status */}
+      <div style={{ marginTop: 20 }}>
+        <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 14px" }}>
+          Integridade dos Dados
+        </h2>
+        <div
+          className="card"
+          style={{
+            padding: "18px 24px",
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: "var(--radius-md)",
+              background: latestBackup ? "var(--green-tint, #e6f9f0)" : "var(--canvas)",
+              color: latestBackup ? "var(--green)" : "var(--ink-4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            {latestBackup ? <CheckCircle2 size={20} /> : <FileArchive size={20} />}
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>
+              {latestBackup
+                ? `${backupCount} backup(s) disponível(is)`
+                : "Nenhum backup criado ainda"}
+            </div>
+            {latestBackup ? (
+              <div style={{ fontSize: 12, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    padding: "1px 6px",
+                    borderRadius: 99,
+                    background: "var(--accent-tint)",
+                    color: "var(--accent)",
+                    fontWeight: 700,
+                    fontSize: 10,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {latestBackup.algoritmo}
+                </span>
+                <span>{formatBytes(latestBackup.tamanho)}</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <Clock size={11} /> {latestBackup.criadoEm}
+                </span>
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                Backups são criados automaticamente a cada 5 operações de escrita — Huffman e LZW alternados.
+              </div>
+            )}
+          </div>
+
+          {latestBackup && (
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--ink-4)",
+                fontFamily: "monospace",
+                maxWidth: 220,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+              title={latestBackup.arquivo}
+            >
+              {latestBackup.arquivo}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Explore shortcut */}
       <div
         style={{
-          marginTop: 20,
+          marginTop: 16,
           padding: "18px 24px",
           borderRadius: "var(--radius-xl)",
           background: "var(--canvas)",
@@ -192,7 +307,6 @@ function BigKpi({ label, value, icon, color, isText }: { label: string; value: s
       }}
     >
       <div style={{ position: "absolute", top: -10, right: -10, opacity: 0.06, color }}>
-        {/* bg icon */}
         <span style={{ fontSize: 80 }}>{icon}</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
