@@ -2,7 +2,7 @@
 
 ## Sistema de Gestão de Locação de Imóveis por Temporada
 
-Projeto desenvolvido para a disciplina **AEDs III (Algoritmos e Estruturas de Dados III)**, com foco em modelagem de dados, persistência em arquivos binários e aplicação de estruturas de dados avançadas.
+Projeto desenvolvido para a disciplina **AEDs III (Algoritmos e Estruturas de Dados III)** da PUC Minas, com foco em modelagem de dados, persistência em arquivos binários e implementação de estruturas de dados avançadas. **Não utiliza nenhum SGBD** — toda a persistência é feita diretamente em arquivos binários customizados, com índices, árvores e algoritmos implementados do zero em Go.
 
 ---
 
@@ -16,31 +16,32 @@ Projeto desenvolvido para a disciplina **AEDs III (Algoritmos e Estruturas de Da
 6. [Hash Extensível](#hash-extensível)
 7. [Árvore B+](#árvore-b)
 8. [Ordenação Externa](#ordenação-externa)
-9. [Compressão de Dados](#compressão-de-dados)
+9. [Compressão de Dados e Backup Automático](#compressão-de-dados-e-backup-automático)
 10. [Casamento de Padrões](#casamento-de-padrões)
 11. [Compilação e Execução](#compilação-e-execução)
 12. [Endpoints da API](#endpoints-da-api)
 13. [Fluxo de Funcionamento](#fluxo-de-funcionamento)
 14. [Arquitetura](#arquitetura)
-15. [Conceitos Aplicados](#conceitos-aplicados)
-16. [Equipe](#equipe)
+15. [Fases do Projeto](#fases-do-projeto)
+16. [Conceitos Aplicados](#conceitos-aplicados)
+17. [Equipe](#equipe)
 
 ---
 
 ## Sobre o Projeto
 
-O **Hostly** é um sistema full-stack de gestão de imóveis para locação por temporada. O diferencial do projeto é **não utilizar SGBD**: toda a persistência é feita diretamente em arquivos binários customizados, com índices implementados do zero.
+O **Hostly** é um sistema full-stack de gestão de imóveis para locação por temporada. O diferencial do projeto está na camada de persistência: toda a infraestrutura de dados — índices, árvores, ordenação e compressão — foi escrita do zero em Go, sem uso de bibliotecas externas de estruturas de dados.
 
 **Funcionalidades principais:**
 - CRUD completo de Imóveis, Usuários, Reservas e Comodidades
-- Relacionamentos 1:N (Anfitrião → Imóveis → Reservas) via Hash Extensível multi-valor
-- Relacionamento N:N (Imóveis ↔ Comodidades) via tabela intermediária com Hash + Árvore B+
+- Relacionamento 1:N (Anfitrião → Imóveis → Reservas) via Hash Extensível multi-valor
+- Relacionamento N:N (Imóveis ↔ Comodidades) com índices bidirecionais e Árvore B+
 - Busca por ID em O(1) via Hash Extensível primário
 - Busca textual por tokens via índice invertido (FNV-32a)
-- Busca por faixa de valores (preço, período) processada no backend
-- Ordenação física dos arquivos via Ordenação Externa (External Merge Sort com heap de k-vias)
-- Compressão e descompressão de arquivos de dados (Huffman e LZW) com taxa de compressão e verificação de integridade
-- Busca por casamento de padrões em texto (KMP e Boyer-Moore) com temporização separada por algoritmo e posições exatas dos matches
+- Busca por faixa de valores (preço, período) processada inteiramente no backend
+- Ordenação física dos arquivos via External Merge Sort com heap de k-vias
+- Backup automático comprimido (Huffman e LZW) acionado pela própria expansão do sistema
+- Casamento de padrões (KMP e Boyer-Moore) integrado em todas as buscas textuais da aplicação
 - Dashboard com mapa interativo e geolocalização de imóveis
 
 ---
@@ -57,6 +58,8 @@ O **Hostly** é um sistema full-stack de gestão de imóveis para locação por 
 | Índice secundário | Hash Extensível multi-valor (1:N e índice invertido) |
 | Índice N:N ordenado | Árvore B+ (chave composta idImovel:idComodidade) |
 | Ordenação | External Merge Sort com heap de k-vias |
+| Compressão | Huffman e LZW implementados do zero — backup automático em `.hbak` |
+| Busca textual | KMP e Boyer-Moore integrados em todas as buscas |
 
 ### Front-end
 
@@ -65,7 +68,7 @@ O **Hostly** é um sistema full-stack de gestão de imóveis para locação por 
 | React | 19.2 |
 | TypeScript | 5.9 |
 | Vite | 7.3 |
-| Zustand | 5 (estado global + persistência) |
+| Zustand | 5 (estado global + persistência no localStorage) |
 | React Router | 7 |
 | React Leaflet | Mapa interativo com pins de preço |
 
@@ -100,26 +103,28 @@ Hostly/
 │   │   │   │   ├── reservation_file_repo.go
 │   │   │   │   ├── amenity_file_repo.go
 │   │   │   │   └── property_amenity_file_repo.go
-│   │   │   ├── compression/                         # Algoritmos de compressão
-│   │   │   │   ├── huffman.go                       # Huffman encode/decode
-│   │   │   │   ├── lzw.go                           # LZW encode/decode
-│   │   │   │   └── engine.go                        # Orquestrador (Compress/Decompress)
-│   │   │   ├── patternmatch/                        # Casamento de padrões
-│   │   │   │   ├── kmp.go                           # KMP (tabela de falha + busca)
-│   │   │   │   ├── bm.go                            # Boyer-Moore (bad-char + busca)
-│   │   │   │   └── engine.go                        # Orquestrador (Search + temporização)
-│   │   │   └── web/handler/                         # Handlers HTTP
-│   │   │       ├── router.go
-│   │   │       ├── auth_handler.go
-│   │   │       ├── property_handler.go
-│   │   │       ├── user_handler.go
-│   │   │       ├── reservation_handler.go
-│   │   │       ├── amenity_handler.go
-│   │   │       ├── property_amenity_handler.go
-│   │   │       ├── dashboard_handler.go
-│   │   │       ├── compression_handler.go
-│   │   │       ├── patternmatch_handler.go
-│   │   │       └── aed_handler.go                   # Diagnóstico dos índices
+│   │   │   ├── compression/                     # Algoritmos de compressão
+│   │   │   │   ├── huffman.go                   # Huffman encode/decode
+│   │   │   │   ├── lzw.go                       # LZW encode/decode
+│   │   │   │   ├── archive.go                   # Empacotamento multi-arquivo (formato HLTB)
+│   │   │   │   └── engine.go                    # Orquestrador (Compress/Decompress)
+│   │   │   ├── patternmatch/                    # Casamento de padrões
+│   │   │   │   ├── kmp.go                       # KMP (tabela de falha + busca)
+│   │   │   │   ├── bm.go                        # Boyer-Moore (bad-char + busca)
+│   │   │   │   └── engine.go                    # Orquestrador + funções MatchBM/MatchKMP
+│   │   │   └── web/
+│   │   │       ├── router.go                    # Roteamento + middleware de backup automático
+│   │   │       └── handler/
+│   │   │           ├── auth_handler.go
+│   │   │           ├── property_handler.go      # BM post-filter integrado
+│   │   │           ├── user_handler.go          # BM post-filter integrado
+│   │   │           ├── reservation_handler.go   # BM post-filter integrado
+│   │   │           ├── amenity_handler.go
+│   │   │           ├── property_amenity_handler.go
+│   │   │           ├── dashboard_handler.go
+│   │   │           ├── backup_handler.go        # Backup: Create, List, Restore, AutoBackup
+│   │   │           ├── patternmatch_handler.go  # Endpoint de diagnóstico BM vs KMP
+│   │   │           └── aed_handler.go           # Diagnóstico dos índices
 │   │   └── usecase/                             # Casos de uso / serviços
 │   │       ├── auth/
 │   │       ├── property/
@@ -128,31 +133,29 @@ Hostly/
 │   │       └── propertyamenity/
 │   ├── data/                                    # Arquivos binários gerados em runtime
 │   └── go.mod
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   │   └── store.ts                         # Estado global (Zustand)
-│   │   ├── features/
-│   │   │   ├── auth/                            # Login / cadastro
-│   │   │   └── map/                             # MapView + geocodificação
-│   │   ├── pages/                               # Uma página por rota
-│   │   │   ├── Landing.tsx                      # Mapa público + login
-│   │   │   ├── Explore.tsx                      # Busca e filtros de imóveis
-│   │   │   ├── AdminUsers.tsx
-│   │   │   ├── AdminProperties.tsx
-│   │   │   ├── AdminReservations.tsx
-│   │   │   ├── AdminCompressao.tsx              # Compressão (admin)
-│   │   │   ├── BuscaPadroesPage.tsx             # Busca por padrões (admin)
-│   │   │   ├── HostDashboard.tsx
-│   │   │   ├── HostListings.tsx
-│   │   │   ├── HostReservations.tsx
-│   │   │   ├── GuestDashboard.tsx
-│   │   │   └── GuestReservations.tsx
-│   │   └── services/
-│   │       └── api.ts                           # Cliente HTTP centralizado
-│   ├── package.json
-│   └── vite.config.ts
-└── README.md
+└── frontend/
+    └── src/
+        ├── app/
+        │   └── store.ts                         # Estado global (Zustand)
+        ├── features/
+        │   ├── auth/                            # Login / cadastro
+        │   └── properties/                      # Overlay de detalhes do imóvel
+        ├── pages/
+        │   ├── Landing.tsx                      # Mapa público + login
+        │   ├── Explore.tsx                      # Busca e filtros de imóveis
+        │   ├── AdminDashboard.tsx               # KPIs + status de backup automático
+        │   ├── AdminUsers.tsx
+        │   ├── AdminProperties.tsx
+        │   ├── AdminReservations.tsx
+        │   ├── AdminAmenities.tsx
+        │   ├── HostDashboard.tsx
+        │   ├── HostListings.tsx
+        │   ├── HostReservations.tsx
+        │   ├── HostRevenue.tsx
+        │   ├── GuestDashboard.tsx
+        │   └── GuestReservations.tsx
+        └── services/
+            └── api.ts                           # Cliente HTTP centralizado
 ```
 
 ---
@@ -169,7 +172,7 @@ Hostly/
 | telefone | string                                | Opcional                 |
 | senha    | string                                | Armazenada com hash      |
 | tipo     | `ADMIN` \| `ANFITRIAO` \| `HOSPEDE`   |                          |
-| ativo    | bool                                  | Exclusão lógica (lápide) |
+| ativo    | bool                                  | Exclusão lógica          |
 
 ### Imovel
 
@@ -185,24 +188,24 @@ Hostly/
 | longitude    | float64    |                                               |
 | valorDiaria  | float64    | Deve ser > 0                                  |
 | dataCadastro | string     | YYYY-MM-DD                                    |
-| fotos        | []string   | Exatamente 1 foto (URL https:// ou base64)   |
+| fotos        | []string   | Lista de data-URLs das fotos                  |
 | comodidades  | []Amenity  | Hidratadas da relação N:N via B+              |
 | ativo        | bool       | Exclusão lógica                               |
 
 ### Reserva
 
-| Campo          | Tipo                                                               | Regras                             |
-|----------------|--------------------------------------------------------------------|------------------------------------|
-| id             | int (PK)                                                           |                                    |
-| idImovel       | int (FK)                                                           |                                    |
-| idHospede      | int (FK)                                                           |                                    |
-| dataInicio     | string                                                             | YYYY-MM-DD                         |
-| dataFim        | string                                                             | Deve ser após dataInicio           |
-| valorTotal     | float64                                                            | Calculado: diária × dias           |
-| status         | `PENDENTE` \| `CONFIRMADA` \| `CANCELADA`                          |                                    |
-| formaPagamento | `PIX` \| `CARTAO_CREDITO` \| `CARTAO_DEBITO` \| `BOLETO` \| `DINHEIRO` |                               |
-| statusPagamento| `NAO_INICIADO` \| `PENDENTE` \| `APROVADO` \| `FALHOU`             |                                    |
-| confirmadaEm   | string (RFC3339)                                                   | Preenchido ao confirmar            |
+| Campo           | Tipo                                                                     | Regras                         |
+|-----------------|--------------------------------------------------------------------------|--------------------------------|
+| id              | int (PK)                                                                 |                                |
+| idImovel        | int (FK)                                                                 |                                |
+| idHospede       | int (FK)                                                                 |                                |
+| dataInicio      | string                                                                   | YYYY-MM-DD                     |
+| dataFim         | string                                                                   | Deve ser após dataInicio       |
+| valorTotal      | float64                                                                  | Calculado: diária × dias       |
+| status          | `PENDENTE` \| `CONFIRMADA` \| `CANCELADA`                                |                                |
+| formaPagamento  | `PIX` \| `CARTAO_CREDITO` \| `CARTAO_DEBITO` \| `BOLETO` \| `DINHEIRO` |                                |
+| statusPagamento | `NAO_INICIADO` \| `PENDENTE` \| `APROVADO` \| `FALHOU`                  |                                |
+| confirmadaEm    | string (RFC3339)                                                         | Preenchido ao confirmar        |
 
 ### Comodidade
 
@@ -216,12 +219,12 @@ Hostly/
 
 ### ImovelComodidade (N:N)
 
-| Campo        | Tipo   | Regras                              |
-|--------------|--------|-------------------------------------|
-| idImovel     | int    | Parte da chave composta             |
-| idComodidade | int    | Parte da chave composta             |
-| dataCadastro | string | YYYY-MM-DD                          |
-| ativo        | bool   | Exclusão lógica                     |
+| Campo        | Tipo   | Regras                                |
+|--------------|--------|---------------------------------------|
+| idImovel     | int    | Parte da chave composta               |
+| idComodidade | int    | Parte da chave composta               |
+| dataCadastro | string | YYYY-MM-DD                            |
+| ativo        | bool   | Exclusão lógica                       |
 
 **Chave primária composta:** `(idImovel, idComodidade)` — impede duplicatas e é a chave da B+.
 
@@ -229,69 +232,49 @@ Hostly/
 
 ## Persistência em Arquivo Binário
 
-### Cabeçalho do arquivo (9 bytes, little-endian)
+### Cabeçalho do arquivo (12 bytes, little-endian)
 
 ```
-┌──────────┬──────────────┬─────────────┐
-│ version  │   lastID     │    count    │
-│  1 byte  │   4 bytes    │   4 bytes   │
-└──────────┴──────────────┴─────────────┘
+┌──────────────┬──────────────┬──────────────┐
+│   nextID     │    count     │  freeHead    │
+│   4 bytes    │   4 bytes    │   4 bytes    │
+└──────────────┴──────────────┴──────────────┘
 ```
 
-- `version`: controle de compatibilidade do formato
-- `lastID`: maior ID já atribuído (auto-incremento)
-- `count`: número de registros ativos (decrementado ao usar lápide)
+- `nextID`: próximo ID a ser atribuído (auto-incremento)
+- `count`: número de registros ativos
+- `freeHead`: cabeça da lista encadeada de slots livres (para reuso)
 
-### Cabeçalho do registro (9 bytes, little-endian)
-
-```
-┌──────────┬──────────────┬─────────────┐
-│  lápide  │      id      │    size     │
-│  1 byte  │   4 bytes    │   4 bytes   │
-└──────────┴──────────────┴─────────────┘
-│                payload               │
-│              (size bytes)            │
-└──────────────────────────────────────┘
-```
-
-- `lápide = 0`: registro ativo; `lápide = 1`: registro excluído logicamente
-- `id`: chave primária da entidade
-- `size`: tamanho do payload em bytes
-
-### Formato do payload (versão 4 — baseado em campos)
+### Registro
 
 ```
-┌──────────┬─────────────┬──────────────┐
-│ version  │ entityType  │ fieldCount   │
-│  1 byte  │   1 byte    │   2 bytes    │
-└──────────┴─────────────┴──────────────┘
-Para cada campo:
-┌──────────┬─────────────┬──────────────┐
-│ fieldID  │  fieldSize  │  fieldData   │
-│  1 byte  │   4 bytes   │  N bytes     │
-└──────────┴─────────────┴──────────────┘
+┌──────────┬──────────────┬─────────────────────┐
+│  status  │      id      │    dados (N bytes)  │
+│  1 byte  │   4 bytes    │    (variável)        │
+└──────────┴──────────────┴─────────────────────┘
+  0xFF = ativo
+  0x00 = excluído
 ```
 
-### Exclusão lógica (lápide)
+### Exclusão lógica com reaproveitamento de slots
 
-Registros deletados não são removidos fisicamente. O byte `lápide` é marcado como `1` no próprio arquivo. Os índices de hash são atualizados para remover a entrada correspondente. O espaço é recuperado via compactação futura ou ignorado nas buscas.
+Registros deletados **não são removidos fisicamente**. O byte de status é marcado como `0x00` e o slot é encadeado na lista de espaços livres via `freeHead`. Na próxima inserção, o sistema reutiliza o primeiro slot disponível dessa lista antes de expandir o arquivo. Isso evita crescimento indefinido do arquivo mesmo com muitas inserções e deleções.
 
-### Atualizações (append-only)
+### Atualizações (append-on-update)
 
-O registro antigo é marcado com lápide. Um novo registro é appendado ao final do arquivo com o mesmo ID. O índice primário é atualizado para apontar para o novo offset. O `count` do cabeçalho permanece inalterado (uma inserção + uma exclusão = zero saldo).
+O registro antigo é marcado com lápide. O registro atualizado é appendado ao final do arquivo com o mesmo ID. O índice primário é reescrito apontando para o novo offset. O `count` permanece inalterado (uma deleção lógica + uma inserção = saldo zero).
 
 ---
 
 ## Hash Extensível
 
-Implementado do zero em Go, sem bibliotecas. Três camadas de uso:
+Implementado do zero em Go, sem bibliotecas. Três camadas de uso no sistema.
 
 ### Conceito
 
-- Buscas em **O(1)** amortizado
+- Buscas em **O(1) amortizado** por chave
 - Cresce incrementalmente: duplica apenas o diretório, não redistribui todos os dados de uma vez
-- Cada bucket tem sua própria profundidade local (`localDepth`)
-- O diretório tem profundidade global (`globalDepth`); seu tamanho é `2^globalDepth`
+- Cada bucket tem profundidade local (`localDepth`); o diretório tem profundidade global (`globalDepth`)
 
 **Lookup:**
 ```
@@ -304,52 +287,48 @@ return bucket.find(key)
 ```
 1. Incrementa localDepth do bucket cheio
 2. Cria novo bucket com a mesma localDepth
-3. Redistribui as entradas usando o novo bit discriminador
-4. Atualiza as entradas do diretório que apontavam para o bucket antigo
-5. Se localDepth > globalDepth: duplica o diretório inteiro
+3. Redistribui entradas usando o novo bit discriminador
+4. Atualiza ponteiros do diretório que apontavam para o bucket antigo
+5. Se localDepth > globalDepth: duplica o diretório
 ```
 
 ### Camada 1 — Hash primário (ID → offset)
 
-Arquivo: `extensible_hash.go`
-
 Cada repositório mantém um índice primário persistido em `.pidx`:
 
 ```
-imoveis.db.pidx    → idImovel   → offset em bytes no arquivo
-reservas.db.pidx   → idReserva  → offset em bytes no arquivo
-usuarios.db.pidx   → idUsuario  → offset em bytes no arquivo
-comodidades.db.pidx→ idComodidade → offset
+data/usuarios.db.pidx      → idUsuario    → offset em bytes no arquivo
+data/imoveis.db.pidx       → idImovel     → offset em bytes no arquivo
+data/reservas.db.pidx      → idReserva    → offset em bytes no arquivo
+data/comodidades.db.pidx   → idComodidade → offset em bytes no arquivo
 ```
 
 ### Camada 2 — Hash multi-valor (1:N)
 
-Arquivo: `relation_extensible_hash.go`
-
 Mapeia uma chave a **múltiplos valores** (`key → []int64`). Persiste em `.ridx`:
 
-| Arquivo                         | Chave      | Valores          |
-|---------------------------------|------------|------------------|
-| `imoveis.db.byuser.ridx`        | idUsuario  | []offset imóvel  |
-| `reservas.db.byproperty.ridx`   | idImovel   | []offset reserva |
-| `reservas.db.byguest.ridx`      | idHospede  | []offset reserva |
-| `imoveis_comodidades.db.byproperty.ridx` | idImovel | []offset vínculo |
-| `imoveis_comodidades.db.byamenity.ridx`  | idComodidade | []offset vínculo |
+| Arquivo                                    | Chave        | Valores            |
+|--------------------------------------------|--------------|--------------------|
+| `imoveis.db.byuser.ridx`                   | idUsuario    | []offset imóvel    |
+| `reservas.db.byproperty.ridx`              | idImovel     | []offset reserva   |
+| `reservas.db.byguest.ridx`                 | idHospede    | []offset reserva   |
+| `imoveis_comodidades.db.byproperty.ridx`   | idImovel     | []offset vínculo   |
+| `imoveis_comodidades.db.byamenity.ridx`    | idComodidade | []offset vínculo   |
 
-### Camada 3 — Índice invertido por termos (busca textual)
+### Camada 3 — Índice invertido por tokens (busca textual)
 
-Mesma estrutura multi-valor, porém a chave é o hash FNV-32a do token normalizado:
+Mesma estrutura multi-valor, com a chave sendo o hash **FNV-32a** do token normalizado:
 
 ```
-token "praia"       → FNV-32a → índice → []idImovel
-token "florianopolis" → FNV-32a → índice → []idImovel
+token "praia"        → FNV-32a → entrada no índice → []idImovel
+token "florianopolis"→ FNV-32a → entrada no índice → []idImovel
 ```
 
-| Arquivo                      | Entidade   |
-|------------------------------|------------|
-| `imoveis.db.byterm.ridx`     | Imóveis    |
-| `reservas.db.byterm.ridx`    | Reservas   |
-| `usuarios.db.byterm.ridx`    | Usuários   |
+| Arquivo                      | Entidade  |
+|------------------------------|-----------|
+| `imoveis.db.byterm.ridx`     | Imóveis   |
+| `reservas.db.byterm.ridx`    | Reservas  |
+| `usuarios.db.byterm.ridx`    | Usuários  |
 
 Busca com múltiplos tokens faz **intersecção** dos conjuntos resultantes.
 
@@ -357,170 +336,239 @@ Busca com múltiplos tokens faz **intersecção** dos conjuntos resultantes.
 
 ## Árvore B+
 
-Arquivo: `bplus_tree.go`
-
-Usada exclusivamente na relação N:N (ImovelComodidade) para permitir **consulta ordenada por idComodidade** dentro de um imóvel.
+Usada na relação N:N (ImovelComodidade) para permitir **listagem ordenada de comodidades por imóvel** sem custo de sort em memória.
 
 **Chave composta int64:**
 ```go
 key = int64(uint64(idImovel) << 32 | uint64(idComodidade))
 ```
 
-Isso garante que as chaves de um mesmo imóvel formem um intervalo contíguo, permitindo `Range(minKey, maxKey)` para recuperar todas as comodidades de um imóvel em ordem crescente de `idComodidade`.
+Isso garante que todas as chaves de um mesmo imóvel formem um intervalo contíguo, viabilizando `Range(minKey, maxKey)` para recuperar as comodidades em ordem crescente de `idComodidade`.
 
-**Parâmetros:** `bPlusMaxKeys = 15` chaves por nó. Nós folha são encadeados para varredura sequencial eficiente.
+**Parâmetros:** `bPlusMaxKeys = 15` chaves por nó. Nós folha são duplamente encadeados para varredura sequencial eficiente.
 
 **Operações:**
 - `Insert(key, offset)` — insere vínculo na árvore
-- `Delete(key, offset)` — remove vínculo
-- `Range(minKey, maxKey)` — retorna todos os offsets no intervalo (usado para listar comodidades de um imóvel)
+- `Delete(key, offset)` — remove vínculo (com rebalanceamento)
+- `Range(minKey, maxKey)` — retorna todos os offsets no intervalo
 
-A B+ é mantida **somente em memória** e reconstruída a partir do arquivo a cada inicialização.
+A B+ é mantida **em memória** e reconstruída a partir dos arquivos a cada inicialização do servidor.
 
 ---
 
 ## Ordenação Externa
 
-Arquivo: `external_sort.go`
+Implementa **External Merge Sort** para reordenar fisicamente o arquivo binário de imóveis e reservas, viabilizando leituras já na ordem solicitada sem overhead adicional em consultas subsequentes.
 
-Usada para reordenar fisicamente o arquivo binário de imóveis e reservas, viabilizando leituras já na ordem solicitada sem custo adicional em consultas subsequentes.
-
-**Algoritmo — dois passos:**
-
-### Passo 1 — Distribuição em runs
+### Fase 1 — Geração de runs
 
 ```
 Para cada bloco de runSize registros ativos:
   1. Carrega registros em memória
-  2. Ordena o bloco pela chave desejada (ex: valorDiaria)
-  3. Serializa o bloco em um arquivo de run temporário:
-     ┌───────────┬──────────────────────────────────────┐
-     │ count: 4B │ registros: [key:8B][id:4B][size:4B][payload:N] │
-     └───────────┴──────────────────────────────────────┘
+  2. Ordena o bloco pela chave desejada (ex: valorDiaria asc)
+  3. Grava em arquivo temporário:
+
+  data/imoveis.db.sort.run.0.bin
+  data/imoveis.db.sort.run.1.bin
+  ...
 ```
 
-### Passo 2 — Merge k-vias com heap mínimo
+### Fase 2 — Merge k-vias com heap mínimo
 
 ```
 Abre todos os runs simultaneamente
-Heap mínimo com um elemento de cada run
+Heap mínimo com um elemento de cada run (o menor de cada)
 Loop:
   1. Extrai o menor elemento do heap
-  2. Grava no arquivo de saída sorted.bin
+  2. Grava no arquivo de saída:
+     data/imoveis.db.sorted.bin
   3. Avança o cursor do run correspondente
   4. Insere o próximo elemento desse run no heap
 ```
 
 ### Reescrita atômica
 
-Após o merge, `RewriteSorted` substitui o arquivo original pelo sorted com renomeação atômica (`os.Rename`) e reconstrói todos os índices (primário + relacionamentos + termos). Isso garante que nenhuma leitura observe um estado intermediário inconsistente.
+Após o merge, `RewriteSorted` substitui o arquivo original pelo sorted com `os.Rename` (atômico no SO) e **reconstrói todos os índices** (primário + relacionamentos + termos). Arquivos temporários de run são removidos. Nenhuma leitura concorrente observa estado intermediário.
 
 **Atributos de ordenação disponíveis:**
 
-| Endpoint    | `ordenarPor`                                  |
-|-------------|-----------------------------------------------|
+| Endpoint    | `ordenarPor`                                   |
+|-------------|------------------------------------------------|
 | `/imoveis`  | `valorDiaria`, `dataCadastro`, `cidade`, `titulo` |
-| `/reservas` | `dataInicio`, `dataFim`, `valorTotal`         |
+| `/reservas` | `dataInicio`, `dataFim`, `valorTotal`          |
 
 ---
 
-## Compressão de Dados
+## Compressão de Dados e Backup Automático
 
-Dois algoritmos de compressão implementados do zero em Go, acessíveis via engine comum que expõe uma interface uniforme para ambos.
+### Filosofia
 
-### Huffman
+A compressão não é um recurso manual — ela é **infraestrutura de backup automático**. A cada 5 operações de escrita bem-sucedidas no sistema (POST/PUT/DELETE com 2xx), um backup comprimido de toda a base de dados é criado automaticamente em background, alternando entre Huffman e LZW.
 
-Compressão baseada em frequência de símbolos:
+### Huffman (`compression/huffman.go`)
 
-1. Constrói tabela de frequência `map[byte]int` a partir dos dados
-2. Monta min-heap de nós `{ símbolo, frequência, esquerda, direita }`
-3. Funde os dois menores repetidamente até restar um nó raiz
-4. Percorre a árvore para atribuir códigos de bits (esquerda=0, direita=1)
-5. Serializa: tabela de frequências (para reconstrução) + padding + bitstream
+Compressão baseada em **frequência de símbolos**:
 
-**Formato binário:**
+1. Conta a frequência de cada byte no input → `map[byte]uint32`
+2. Monta min-heap de nós `{símbolo, frequência, esquerda, direita}`
+3. Funde os dois menores iterativamente até restar um nó raiz (a árvore)
+4. Percorre a árvore para gerar o código binário de cada símbolo (esquerda=0, direita=1)
+5. Serializa o bitstream precedido pela tabela de frequências (necessária para reconstrução)
+
+**Formato do arquivo `.hbak` (Huffman):**
 ```
-[numSymbols uint16]
-[sym byte, freq uint32] × numSymbols   ← tabela de frequências
-[paddingBits byte]                     ← bits de padding no final
+[numSymbols  uint16]
+[sym byte, freq uint32] × numSymbols   ← tabela de reconstrução
+[paddingBits byte]                     ← bits de padding no último byte
 [bitstream...]
 ```
 
 A decodificação reconstrói a árvore a partir do cabeçalho e percorre bit a bit para recuperar os bytes originais.
 
-### LZW
+### LZW (`compression/lzw.go`)
 
-Compressão por dicionário expansível:
+Compressão por **dicionário adaptativo**:
 
-1. Dicionário inicial: cada byte 0–255 mapeado para um código (nextCode = 256)
-2. Varre a entrada acumulando `w`; se `w+c` está no dicionário, estende; caso contrário emite o código de `w`, adiciona `w+c` ao dicionário, reinicia `w = c`
+1. Dicionário inicial: cada byte 0–255 como entrada individual (`nextCode = 256`)
+2. Acumula sequência `w`; se `w+c` está no dicionário, estende; caso contrário emite código de `w`, adiciona `w+c` ao dicionário, reinicia `w = c`
 3. Emite o código final de `w`
+4. Dicionário cresce dinamicamente até 65.536 entradas (`uint16` máximo)
 
-**Formato binário:**
+O decoder reconstrói o mesmo dicionário ao decodificar (algoritmo determinístico), sem necessidade de armazená-lo no arquivo.
+
+**Formato:**
 ```
-[count uint32]      ← número de códigos uint16
+[count uint32]      ← número de códigos emitidos
 [code uint16] × count
 ```
 
-### Engine
+### Empacotamento multi-arquivo (`compression/archive.go`)
 
-```go
-func (e *Engine) Compress(data []byte, algo string) (CompressResult, error)
-func (e *Engine) Decompress(data []byte, algo string, tamanhoOriginal int) (DecompressResult, error)
+Antes de comprimir, todos os arquivos de dados são empacotados em um único stream binário com o formato `HLTB`:
+
+```
+[magic    uint32 = 0x484C5442]   ← "HLTB" — identificador do formato
+[numEntries uint16]
+Para cada arquivo:
+  [nameLen uint16][name bytes]
+  [dataLen uint32][data bytes]
 ```
 
-`CompressResult` retorna `tamanhoOriginal`, `tamanhoComprimido`, `taxa` (razão comprimido/original) e `dadosComprimidos` (base64).
-`DecompressResult` retorna `verificado` (bool: tamanho restaurado == original).
+Esse stream é então comprimido com Huffman **ou** LZW, gerando um único arquivo `.hbak` que contém toda a base de dados.
+
+### Middleware de backup automático (`web/router.go`)
+
+O middleware `withAutoBackup` intercepta todas as requisições de escrita e aciona o backup em background a cada limiar atingido:
+
+```go
+// Trecho simplificado do middleware
+autoBackupState.count++
+if autoBackupState.count >= autoBackupThreshold { // threshold = 5
+    autoBackupState.count = 0
+    algo = algos[autoBackupState.idx % 2] // alterna huffman ↔ lzw
+    autoBackupState.idx++
+    go b.AutoBackup(algo) // não bloqueia a resposta HTTP
+}
+```
+
+Log gerado automaticamente:
+```
+[autobackup] backup-20260603-152301-huffman.hbak criado — 48320 → 31204 bytes (64.6% do original)
+[autobackup] backup-20260603-154812-lzw.hbak criado — 51840 → 28912 bytes (55.8% do original)
+```
+
+**Endpoints de gerenciamento:**
+```
+GET  /backups              → lista todos os backups disponíveis (nome, algoritmo, tamanho, data)
+POST /backup               → {"algoritmo":"huffman"|"lzw"} — cria backup manual imediatamente
+POST /restaurar            → {"arquivo":"backup-....hbak"} — restaura todos os arquivos de dados
+```
+
+O **Admin Dashboard** exibe automaticamente o status do último backup (algoritmo, tamanho, data/hora, nome do arquivo).
 
 ---
 
 ## Casamento de Padrões
 
-Dois algoritmos clássicos executados em paralelo sobre a mesma consulta, permitindo comparar desempenho e verificar concordância de posições.
+### Filosofia
 
-### KMP (Knuth-Morris-Pratt)
+O casamento de padrões não existe como uma aba exclusiva de administrador — ele é **infraestrutura transparente** que roda em todas as buscas textuais do sistema para qualquer tipo de usuário.
 
-```go
-func BuildFailure(pattern string) []int   // tabela de falha em O(m)
-func SearchKMP(text, pattern string) []int // varredura em O(n)
+### Fluxo de busca com BM integrado
+
+```
+Usuário hóspede busca "praia" na página Explorar
+          │
+          ▼
+GET /imoveis?busca=praia
+          │
+          ▼
+Índice invertido de tokens (FNV-32a)
+→ recupera candidatos que contêm o token "praia"
+          │
+          ▼
+Boyer-Moore post-filter (case-insensitive)
+→ verifica que o padrão "praia" está presente como
+  substring exata em pelo menos um campo de texto
+          │
+          ▼
+Resultado final retornado
 ```
 
-**Tabela de falha:** `fail[i]` é o comprimento do maior prefixo próprio de `pattern[0..i]` que também é sufixo. Construída em O(m) com um único passo.
+Campos pesquisados por entidade:
 
-**Varredura:** mantém ponteiro `j` no padrão; em mismatch usa `fail[j-1]` para reutilizar prefixo já comparado, evitando retrocesso no texto.
+| Entidade   | Campos filtrados por BM                                |
+|------------|--------------------------------------------------------|
+| Imóveis    | `titulo`, `descricao`, `cidade`, `rua`, `bairro`       |
+| Usuários   | `nome`, `email`                                        |
+| Reservas   | `status`, `dataInicio`, `dataFim`                      |
 
-**Critério de aceitação:** `SearchKMP("abcabcabc", "abc") == [0, 3, 6]`
+### Boyer-Moore (`patternmatch/bm.go`)
 
-### Boyer-Moore (bad-character)
+Implementado com a heurística do **mau-caráter** (bad character rule):
 
-```go
-func BuildBadChar(pattern string) map[byte]int  // tabela bad-char em O(m)
-func SearchBM(text, pattern string) []int        // varredura com salto
+1. Pré-processamento: constrói `badChar[byte]` = posição mais à direita do byte no padrão
+2. Alinha o padrão ao texto e compara **da direita para a esquerda**
+3. Em mismatch com o caractere `c` do texto: `shift = max(1, j - badChar[c])`
+4. Salta o padrão para frente sem retroceder no texto além do necessário
+
+**Complexidade:** O(n/m) em média — especialmente eficiente para padrões médios/longos em texto natural.
+
+### KMP (`patternmatch/kmp.go`)
+
+Implementado com a **tabela de falha**:
+
+1. Pré-processamento: `fail[i]` = comprimento do maior prefixo próprio de `pattern[0..i]` que também é sufixo (O(m))
+2. Em mismatch em `pattern[j]`: usa `fail[j-1]` para reutilizar prefixo já comparado — **nunca retrocede no texto**
+
+**Complexidade:** O(n + m) — ideal para padrões com repetição interna.
+
+### Endpoint de diagnóstico
+
+Compara BM × KMP com métricas de tempo e posições exatas de ocorrência:
+
+```
+GET /busca/padrao?q={padrão}&entidade={imoveis|usuarios|reservas}
 ```
 
-**Tabela bad-character:** para cada byte, registra a posição mais à direita em que ele aparece no padrão.
-
-**Varredura:** alinha o padrão à esquerda; compara da direita para esquerda; em mismatch calcula `shift = max(1, j - badChar[text[i+j]])` e avança o alinhamento.
-
-**Critério de aceitação:** `SearchBM("abcabcabc", "abc") == [0, 3, 6]`
-
-### Engine
-
-```go
-func (e *Engine) Search(pattern, entity string, records []SearchableRecord) SearchResult
+Resposta:
+```json
+{
+  "padrao": "praia",
+  "entidade": "imoveis",
+  "totalRegistros": 3,
+  "resultados": [
+    {
+      "id": 2,
+      "preview": "Casa de praia em Jurere",
+      "ocorrenciasBM":  [{ "campo": "titulo", "posicao": 8 }],
+      "ocorrenciasKMP": [{ "campo": "titulo", "posicao": 8 }]
+    }
+  ],
+  "tempoMs_BM": 0.532,
+  "tempoMs_KMP": 0.118
+}
 ```
-
-- Busca **case-insensitive**: `toLower(padrão)` e `toLower(valor do campo)` antes de cada chamada
-- Cronometra BM e KMP separadamente sobre todos os registros
-- Retorna `SearchResult` com posições por campo (`campo`, `posicao`), `preview` (valor do primeiro campo com match), e tempos em ms (`tempoMs_BM`, `tempoMs_KMP`)
-
-**Campos pesquisáveis por entidade:**
-
-| Entidade   | Campos                                                         |
-|------------|----------------------------------------------------------------|
-| `imoveis`  | `titulo`, `descricao`, `cidade`, `endereco.rua`, `endereco.bairro` |
-| `usuarios` | `nome`, `email`                                                |
-| `reservas` | `status`                                                       |
 
 ---
 
@@ -538,61 +586,32 @@ func (e *Engine) Search(pattern, entity string, records []SearchableRecord) Sear
 
 ```bash
 cd backend
-
-# Compilar
-go build -o hostly ./cmd/main.go
-
-# Executar
-./hostly
-# ou diretamente:
 go run ./cmd/main.go
+# Servidor em http://localhost:8080
 ```
-
-Servidor em `http://localhost:8080`.
 
 **O que acontece na inicialização:**
 1. Cria `data/` se não existir
 2. Abre (ou cria) os arquivos binários de cada entidade
 3. Carrega índices de hash do disco (`.pidx`, `.ridx`)
-4. Reconstrói índices de relacionamento e B+ em memória
-5. Seed automático: usuário admin (`admin@hostly.local` / `admin123`) e 12 comodidades padrão
+4. Reconstrói índice da B+ em memória a partir dos vínculos salvos
+5. Seed automático: usuário admin e comodidades padrão (se a base estiver vazia)
 6. Inicia listener HTTP na porta 8080
 
 ### Front-end
 
 ```bash
 cd frontend
-
 npm install
-
-# Desenvolvimento (hot reload)
 npm run dev
 # → http://localhost:5173
-
-# Build de produção
-npm run build
-
-# Lint
-npm run lint
 ```
 
-### Executar os dois juntos
+### Contas padrão
 
-```bash
-# Terminal 1
-cd backend && go run ./cmd/main.go
-
-# Terminal 2
-cd frontend && npm run dev
-```
-
-### Contas padrão (após reset dos dados)
-
-| Papel      | Email                    | Senha        |
-|------------|--------------------------|--------------|
-| Admin      | admin@hostly.local       | admin123     |
-| Anfitrião  | anfitriao@hostly.local   | anfitriao123 |
-| Hóspede    | hospede@hostly.local     | hospede123   |
+| Papel      | Email               | Senha    |
+|------------|---------------------|----------|
+| Admin      | admin@hostly.com    | admin123 |
 
 ---
 
@@ -607,7 +626,7 @@ GET  /health
 ### Autenticação
 
 ```
-POST /auth/register      # Criar conta (anfitrião ou hóspede)
+POST /auth/register      # Criar conta
 POST /auth/login         # Login → retorna Bearer token
 GET  /auth/me            # Dados do usuário autenticado
 ```
@@ -625,21 +644,21 @@ DELETE /imoveis/{id}
 
 **Query params — `GET /imoveis`:**
 
-| Parâmetro        | Tipo   | Descrição                                               |
-|------------------|--------|---------------------------------------------------------|
-| `busca`          | string | Busca textual por tokens (índice invertido FNV-32a)     |
-| `cidade`         | string | Filtro exato por cidade                                 |
-| `ativo`          | bool   | Filtrar por status ativo/inativo                        |
-| `valorDiariaMin` | float  | Faixa mínima de diária                                  |
-| `valorDiariaMax` | float  | Faixa máxima de diária                                  |
-| `comodidades`    | string | IDs separados por vírgula (ex: `1,3,6`)                 |
-| `ordenarPor`     | string | `valorDiaria` \| `dataCadastro` \| `cidade` \| `titulo` |
-| `ordem`          | string | `asc` \| `desc`                                         |
+| Parâmetro        | Tipo   | Descrição                                                     |
+|------------------|--------|---------------------------------------------------------------|
+| `busca`          | string | Busca textual por tokens (índice invertido + BM post-filter)  |
+| `cidade`         | string | Filtro por cidade                                             |
+| `ativo`          | bool   | Filtrar por status ativo/inativo                              |
+| `valorDiariaMin` | float  | Faixa mínima de diária                                        |
+| `valorDiariaMax` | float  | Faixa máxima de diária                                        |
+| `comodidades`    | string | IDs separados por vírgula (ex: `1,3,6`)                       |
+| `ordenarPor`     | string | `valorDiaria` \| `dataCadastro` \| `cidade` \| `titulo`       |
+| `ordem`          | string | `asc` \| `desc`                                               |
 
 ### Usuários
 
 ```
-GET    /usuarios                # params: busca
+GET    /usuarios                # param: busca (índice invertido + BM post-filter)
 GET    /usuarios/anfitrioes
 GET    /usuarios/{id}
 POST   /usuarios
@@ -662,17 +681,17 @@ DELETE /reservas/{id}
 
 **Query params — `GET /reservas`:**
 
-| Parâmetro    | Tipo   | Descrição                                             |
-|--------------|--------|-------------------------------------------------------|
+| Parâmetro    | Tipo   | Descrição                                              |
+|--------------|--------|--------------------------------------------------------|
 | `idUsuario`  | int    | Filtro por usuário (combinado com `papel`)             |
-| `papel`      | string | `hospede` \| `anfitriao`                              |
-| `idImovel`   | int    | Filtro por imóvel (hash `byPropertyID`)               |
-| `status`     | string | `PENDENTE` \| `CONFIRMADA` \| `CANCELADA`             |
-| `periodoDe`  | string | Data início do intervalo (YYYY-MM-DD)                 |
-| `periodoAte` | string | Data fim do intervalo (YYYY-MM-DD)                    |
-| `busca`      | string | Busca textual (índice invertido)                      |
-| `ordenarPor` | string | `dataInicio` \| `dataFim` \| `valorTotal`             |
-| `ordem`      | string | `asc` \| `desc`                                       |
+| `papel`      | string | `hospede` \| `anfitriao`                               |
+| `idImovel`   | int    | Filtro por imóvel                                      |
+| `status`     | string | `PENDENTE` \| `CONFIRMADA` \| `CANCELADA`              |
+| `periodoDe`  | string | Data início do intervalo (YYYY-MM-DD)                  |
+| `periodoAte` | string | Data fim do intervalo (YYYY-MM-DD)                     |
+| `busca`      | string | Busca textual (índice invertido + BM post-filter)      |
+| `ordenarPor` | string | `dataInicio` \| `dataFim` \| `valorTotal`              |
+| `ordem`      | string | `asc` \| `desc`                                        |
 
 ### Comodidades
 
@@ -688,91 +707,30 @@ DELETE /comodidades/{id}
 
 ```
 POST   /imoveis-comodidades
-GET    /imoveis-comodidades/imovel/{idImovel}                            # comodidades do imóvel (B+, ordenado)
-GET    /imoveis-comodidades/comodidade/{idComodidade}/imoveis            # imóveis com a comodidade
-GET    /imoveis-comodidades/imovel/{idImovel}/comodidade/{idComodidade}  # buscar vínculo específico
+GET    /imoveis-comodidades/imovel/{idImovel}                             # comodidades (B+, ordenado)
+GET    /imoveis-comodidades/comodidade/{idComodidade}/imoveis             # imóveis com a comodidade
+GET    /imoveis-comodidades/imovel/{idImovel}/comodidade/{idComodidade}
 DELETE /imoveis-comodidades/imovel/{idImovel}/comodidade/{idComodidade}
 ```
 
-### Dashboard
+### Backup e Compressão
+
+```
+GET  /backups
+POST /backup               # body: { "algoritmo": "huffman"|"lzw" }
+POST /restaurar            # body: { "arquivo": "backup-....hbak" }
+```
+
+### Diagnóstico de Padrões
+
+```
+GET /busca/padrao?q=&entidade=imoveis|usuarios|reservas
+```
+
+### Dashboard e AED
 
 ```
 GET /dashboard/stats
-```
-
-```json
-{
-  "totalImoveis": 3,
-  "totalAnfitrioes": 1,
-  "totalReservas": 3,
-  "receitaTotal": 9630.00
-}
-```
-
-### Compressão
-
-```
-POST /compressao
-```
-
-Body:
-```json
-{ "entidade": "imoveis|usuarios|reservas", "algoritmo": "huffman|lzw" }
-```
-
-Resposta:
-```json
-{
-  "algoritmo": "huffman",
-  "tamanhoOriginal": 4096,
-  "tamanhoComprimido": 2048,
-  "taxa": 0.5,
-  "dadosComprimidos": "<base64>"
-}
-```
-
-```
-POST /descompressao
-```
-
-Body:
-```json
-{ "algoritmo": "huffman", "dadosComprimidos": "<base64>", "tamanhoOriginal": 4096 }
-```
-
-Resposta:
-```json
-{ "algoritmo": "huffman", "tamanhoOriginal": 4096, "tamanhoRestaurado": 4096, "verificado": true }
-```
-
-### Busca por Padrões
-
-```
-GET /busca/padrao?q=<padrão>&entidade=<imoveis|usuarios|reservas>
-```
-
-Resposta:
-```json
-{
-  "padrao": "praia",
-  "entidade": "imoveis",
-  "totalRegistros": 3,
-  "resultados": [
-    {
-      "id": 2,
-      "preview": "Casa de praia em Jurere",
-      "ocorrenciasBM":  [{ "campo": "titulo", "posicao": 8 }],
-      "ocorrenciasKMP": [{ "campo": "titulo", "posicao": 8 }]
-    }
-  ],
-  "tempoMs_BM": 0.532,
-  "tempoMs_KMP": 0.118
-}
-```
-
-### AED — Diagnóstico dos índices
-
-```
 GET /aed/diagnostico
 GET /aed/anfitriao/{id}
 ```
@@ -789,16 +747,18 @@ POST /imoveis
 propertyHandler.Create()
   └── propertyService.Create(domain.Property)
         ├── Valida entidade (titulo, endereco, foto, valorDiaria...)
-        ├── propertyRepo.Create()
-        │     ├── Append no arquivo binário → obtém offset
-        │     ├── hashPrimario.Set(id, offset)       → imoveis.db.pidx
-        │     ├── hashByUser.Insert(idUsuario, offset) → imoveis.db.byuser.ridx
-        │     └── hashByTerm.Insert(token, id) por cada token → imoveis.db.byterm.ridx
-        └── propertyAmenityService.ReplacePropertyAmenities(id, amenities)
-              └── Cria vínculos em imoveis_comodidades.db + atualiza B+ e hashes
+        └── propertyRepo.Create()
+              ├── Append no arquivo binário → obtém offset
+              ├── hashPrimario.Set(id, offset)          → imoveis.db.pidx
+              ├── hashByUser.Insert(idUsuario, offset)  → imoveis.db.byuser.ridx
+              └── hashByTerm.Insert(token, id) × tokens → imoveis.db.byterm.ridx
+
+          → middleware detecta POST com 2xx
+          → incrementa contador de escritas
+          → se contador atingiu 5: go AutoBackup("huffman"|"lzw")
 ```
 
-### Busca textual
+### Busca textual com BM integrado
 
 ```
 GET /imoveis?busca=praia+florianopolis
@@ -809,20 +769,10 @@ GET /imoveis?busca=praia+florianopolis
 4. intersecção              → [id3]
 5. hashPrimario.Get(id3)    → offset
 6. file.ReadAt(offset)      → deserializa registro
+7. BM post-filter: MatchBM(titulo, "praia") || MatchBM(cidade, "praia") || ...
+   → confirma que o padrão está presente como substring exata
 
 Resultado: apenas o imóvel 3
-```
-
-### Busca por faixa de preço
-
-```
-GET /imoveis?valorDiariaMin=300&valorDiariaMax=500
-
-1. GetAll() → lê todos os registros ativos do arquivo
-2. Aplica filtro server-side: valorDiaria >= 300 && valorDiaria <= 500
-3. Retorna apenas os imóveis dentro da faixa
-
-Nenhuma filtragem acontece no frontend.
 ```
 
 ### Ordenação externa
@@ -830,12 +780,12 @@ Nenhuma filtragem acontece no frontend.
 ```
 GET /imoveis?ordenarPor=valorDiaria&ordem=asc
 
-1. SortExternal: lê registros em blocos (runSize)
-   └── Ordena cada bloco → grava em imoveis.sort.run.N.bin
-2. Merge k-vias com heap mínimo → imoveis.sorted.bin
-3. RewriteSorted: renomeia atomicamente sorted.bin → imoveis.db
+1. SortExternal: lê registros em blocos
+   └── Ordena cada bloco → grava em imoveis.db.sort.run.N.bin
+2. Merge k-vias com heap mínimo → imoveis.db.sorted.bin
+3. RewriteSorted: os.Rename(sorted.bin → imoveis.db) [atômico]
 4. Reconstrói todos os índices (pidx, byuser, byterm)
-5. Consulta retorna os registros já na nova ordem física
+5. Consulta retorna registros já na nova ordem física
 ```
 
 ### Listar comodidades de um imóvel (B+)
@@ -843,22 +793,22 @@ GET /imoveis?ordenarPor=valorDiaria&ordem=asc
 ```
 GET /imoveis-comodidades/imovel/1
 
-1. B+.Range(minKey=idImovel<<32|0, maxKey=idImovel<<32|MAXUINT32)
-   → retorna lista de offsets em imoveis_comodidades.db, ordenados por idComodidade
+1. B+.Range(key=1<<32|0, key=1<<32|MAXUINT32)
+   → offsets em imoveis_comodidades.db, ordenados por idComodidade
 2. Para cada offset: readAt(offset) → deserializa vínculo
 3. Retorna comodidades em ordem crescente de idComodidade
 ```
 
-### Filtro de reservas por período
+### Backup automático
 
 ```
-GET /reservas?idUsuario=3&papel=hospede&periodoDe=2026-06-01&periodoAte=2026-07-31
-
-1. hashByGuest.Get(idHospede=3) → []offsets de reservas do hóspede
-2. Para cada offset: lê reserva, verifica dataInicio >= periodoDe && dataFim <= periodoAte
-3. Retorna apenas as reservas dentro do intervalo
-
-Nenhuma filtragem acontece no frontend.
+5ª operação de escrita bem-sucedida detectada pelo middleware
+  └── go b.AutoBackup("huffman")
+        ├── collectDataFiles() → glob data/*.db + data/*.ridx + data/*.pidx
+        ├── archive.Pack(entries) → stream HLTB
+        ├── huffman.Encode(stream) → bitstream comprimido
+        └── os.WriteFile("data/backup-20260603-152301-huffman.hbak", ...)
+              → log: "backup criado — 48320 → 31204 bytes (64.6%)"
 ```
 
 ---
@@ -881,20 +831,82 @@ Nenhuma filtragem acontece no frontend.
           ┌───────────────▼──┐    ┌────────▼──────────────┐
           │   Web Adapter    │    │  Repository Adapter    │
           │  HTTP handlers   │    │  arquivo binário +     │
-          │  JSON/multipart  │    │  hash extensível + B+  │
+          │  + middleware     │    │  hash extensível + B+  │
           └──────────────────┘    └────────────────────────┘
 ```
 
-### Front-end — camadas
+### Front-end — três camadas
 
 ```
-pages/          → uma página por rota (role-based)
-features/       → domínios transversais (auth, map)
-app/store.ts    → estado global com Zustand (persiste token no localStorage)
-services/api.ts → cliente HTTP centralizado (injeta Bearer token automaticamente)
+pages/          → uma página por rota, uma por perfil de usuário
+features/       → domínios transversais (auth, properties)
+app/store.ts    → estado global com Zustand (token no localStorage)
+services/api.ts → cliente HTTP centralizado (injeta Bearer token)
 ```
 
-**Regra de ouro do frontend:** nenhuma filtragem, busca ou ordenação é feita no cliente. Todo query param (`busca`, `valorDiariaMin`, `valorDiariaMax`, `comodidades`, `status`, `periodoDe`, `periodoAte`, `idUsuario`, `papel`) é enviado ao backend, que usa os índices para processar.
+**Regra fundamental do frontend:** nenhuma filtragem, busca ou ordenação é feita no cliente. Todo query param (`busca`, `valorDiariaMin`, `comodidades`, `status`, `periodoDe`, `ordenarPor`...) é enviado ao backend, que usa os índices para processar.
+
+---
+
+## Fases do Projeto
+
+### Fase 1 — Fundação: CRUD e Persistência Binária
+
+A primeira fase estabeleceu toda a infraestrutura de persistência. O desafio central foi criar um formato de arquivo binário próprio que suportasse inserção, leitura, atualização e deleção de forma eficiente, sem depender de nenhum banco de dados.
+
+O formato adotado usa um **cabeçalho de controle de 12 bytes** (nextID, count, freeHead) e um **byte de status por registro** para deleção lógica. A lista encadeada de slots livres (`freeHead`) garante que espaço de registros deletados seja reaproveitado em novas inserções, evitando crescimento indefinido do arquivo.
+
+Também foram implementados nesta fase: autenticação JWT, três perfis de usuário (ADMIN, ANFITRIÃO, HÓSPEDE), promoção automática de hóspede a anfitrião ao cadastrar o primeiro imóvel, e o frontend completo com mapa interativo.
+
+**Entregáveis:** CRUD completo para todas as entidades, persistência binária com cabeçalho, exclusão lógica, autenticação JWT, frontend com três perfis.
+
+---
+
+### Fase 2 — Índices e Ordenação Externa
+
+Com o CRUD funcionando, a Fase 2 atacou a eficiência. Buscas por ID eram O(n) (varredura linear), e não havia ordenação.
+
+O **Hash Extensível** foi implementado como índice primário, levando o acesso por ID a O(1) amortizado. O mecanismo de splitting dinâmico (com doubling do diretório quando necessário) garante que o índice escale conforme os dados crescem.
+
+Para relacionamentos, o **Hash Extensível multi-valor** (`key → []IDs`) foi adicionado, permitindo listar todos os imóveis de um proprietário ou todas as reservas de um hóspede instantaneamente, sem varredura.
+
+O **índice invertido de tokens** (FNV-32a sobre tokens normalizados) viabilizou busca textual eficiente: uma consulta por "praia" recupera candidatos em O(1) via índice, sem leitura sequencial de todos os registros.
+
+A **Árvore B+** (com folhas duplamente encadeadas) foi implementada para suportar buscas por intervalo e listagem ordenada.
+
+A **Ordenação Externa** (External Merge Sort com heap de k-vias) foi implementada para reordenar fisicamente os arquivos binários, com reescrita atômica via `os.Rename` e reconstrução automática de todos os índices.
+
+**Entregáveis:** Hash Extensível (PK), índices 1:N, índice invertido textual, Árvore B+, ordenação externa por intercalação.
+
+---
+
+### Fase 3 — Relacionamento N:N e Listagem Ordenada
+
+A Fase 3 introduziu o relacionamento N:N entre Imóveis e Comodidades, com dois índices bidirecionais (por imóvel e por comodidade) e a B+ como índice ordenado do vínculo.
+
+A chave composta `int64 = idImovel << 32 | idComodidade` na B+ garante que todas as comodidades de um imóvel formem um intervalo contíguo, viabilizando `Range()` para listagem ordenada sem custo adicional de sort.
+
+A integridade referencial é mantida no backend: criação de vínculo valida existência e status ativo de ambas as entidades; deleção de imóvel ou comodidade remove todos os vínculos associados.
+
+**Entregáveis:** Tabela N:N (imoveis_comodidades), índices bidirecionais, listagem ordenada via B+, CRUD de comodidades.
+
+---
+
+### Fase 4 — Compressão e Casamento de Padrões
+
+A Fase 4 foi a mais exigente em integração. O critério central foi que as novas funcionalidades não fossem abas isoladas, mas **infraestrutura transparente** do sistema.
+
+**Casamento de Padrões:** BM e KMP foram implementados do zero. O Boyer-Moore foi inserido como post-filter em todos os handlers de busca (imóveis, usuários, reservas), rodando automaticamente em toda busca textual de qualquer usuário. O índice invertido recupera candidatos; o BM garante que o padrão está presente como substring exata nos campos de texto.
+
+**Compressão e Backup:** Huffman e LZW foram implementados do zero. O formato de arquivo `HLTB` empacota todos os arquivos de dados em um único stream antes da compressão. O middleware `withAutoBackup` monitora toda operação de escrita bem-sucedida e aciona um backup em background a cada 5 escritas, alternando automaticamente entre Huffman e LZW. O Admin Dashboard exibe o status do último backup.
+
+**Entregáveis:** Huffman + LZW (backup automático e manual), formato HLTB, Boyer-Moore + KMP integrados em todas as buscas textuais, endpoint de diagnóstico com métricas comparativas.
+
+---
+
+### Fase 5 — Criptografia (a implementar)
+
+Criptografia XOR nas senhas dos usuários.
 
 ---
 
@@ -909,24 +921,14 @@ services/api.ts → cliente HTTP centralizado (injeta Bearer token automaticamen
 | **Exclusão lógica (lápide)** | Deleção em todas as entidades | `binary_store.go` |
 | **Serialização manual** | Codec de campos com ID + tamanho + dados | `entity_codecs.go` |
 | **Índice invertido (FNV-32a)** | Busca textual por tokens normalizados | `token_search.go` |
+| **Huffman Encoding/Decoding** | Backup comprimido por frequência de símbolos | `compression/huffman.go` |
+| **LZW Encoding/Decoding** | Backup comprimido por dicionário expansível | `compression/lzw.go` |
+| **Arquivo multi-entidade (HLTB)** | Empacotamento de todos os .db em um único stream | `compression/archive.go` |
+| **Backup automático por escrita** | Middleware conta escritas e aciona backup em background | `web/router.go` |
+| **Boyer-Moore (bad-character)** | Post-filter em todas as buscas textuais | `patternmatch/bm.go` |
+| **KMP (Knuth-Morris-Pratt)** | Busca de padrões com tabela de falha | `patternmatch/kmp.go` |
 | **Arquitetura Hexagonal** | Domain / UseCase / Ports / Adapters | `internal/` |
-| **Geocodificação** | Coordenadas por CEP para pins no mapa | `features/map/` |
 | **Estado global persistido** | Token de sessão via Zustand + localStorage | `app/store.ts` |
-| **Huffman Encoding/Decoding** | Compressão de arquivos de dados por frequência de símbolos | `compression/huffman.go` |
-| **LZW Encoding/Decoding** | Compressão de arquivos de dados por dicionário expansível | `compression/lzw.go` |
-| **KMP (Knuth-Morris-Pratt)** | Busca de padrões em texto com tabela de falha em O(m+n) | `patternmatch/kmp.go` |
-| **Boyer-Moore (bad-character)** | Busca de padrões com salto por caractere ruim, O(mn) pior caso, sub-linear na prática | `patternmatch/bm.go` |
-
----
-
-## Formulário Técnico — Fase III
-
-1. **Relacionamento N:N:** Imóveis ↔ Comodidades, via `imoveis_comodidades.db`.
-2. **Índices:** Hash Extensível multi-valor bilateral (`byproperty.ridx` e `byamenity.ridx`) + Árvore B+ em memória para leitura ordenada por `idComodidade`.
-3. **Chave composta:** par `(idImovel, idComodidade)` gravado no cabeçalho de cada registro da tabela intermediária (13 bytes: lápide + idImovel + idAmenidade + size).
-4. **Ordenação externa:** External Merge Sort com heap de k-vias implementado em `external_sort.go`, ativado via `?ordenarPor=` nos endpoints de imóveis e reservas.
-5. **Integridade referencial:** serviço valida existência e status ativo de imóvel e comodidade antes de criar vínculo; deleção de imóvel ou comodidade remove logicamente todos os vínculos associados.
-6. **Integração com CRUDs:** criar/editar imóvel sincroniza vínculos via `ReplacePropertyAmenities`; listar imóvel hidrata comodidades via `HydratePropertyAmenities` (consulta B+); excluir imóvel dispara `DeleteByPropertyID` no repositório N:N.
 
 ---
 
@@ -940,11 +942,4 @@ services/api.ts → cliente HTTP centralizado (injeta Bearer token automaticamen
 
 ---
 
-## Status
-
-- Fase 1 — Concluída
-- Fase 2 — Concluída
-- Fase 3 — Concluída
-- Fase 4 — Concluída (Compressão de Dados + Casamento de Padrões)
-
-Projeto acadêmico desenvolvido para fins educacionais — AEDs III / PUC Minas.
+*Projeto acadêmico — AEDs III / PUC Minas.*
