@@ -16,12 +16,14 @@ Projeto desenvolvido para a disciplina **AEDs III (Algoritmos e Estruturas de Da
 6. [Hash Extensível](#hash-extensível)
 7. [Árvore B+](#árvore-b)
 8. [Ordenação Externa](#ordenação-externa)
-9. [Compilação e Execução](#compilação-e-execução)
-10. [Endpoints da API](#endpoints-da-api)
-11. [Fluxo de Funcionamento](#fluxo-de-funcionamento)
-12. [Arquitetura](#arquitetura)
-13. [Conceitos Aplicados](#conceitos-aplicados)
-14. [Equipe](#equipe)
+9. [Compressão de Dados](#compressão-de-dados)
+10. [Casamento de Padrões](#casamento-de-padrões)
+11. [Compilação e Execução](#compilação-e-execução)
+12. [Endpoints da API](#endpoints-da-api)
+13. [Fluxo de Funcionamento](#fluxo-de-funcionamento)
+14. [Arquitetura](#arquitetura)
+15. [Conceitos Aplicados](#conceitos-aplicados)
+16. [Equipe](#equipe)
 
 ---
 
@@ -37,6 +39,8 @@ O **Hostly** é um sistema full-stack de gestão de imóveis para locação por 
 - Busca textual por tokens via índice invertido (FNV-32a)
 - Busca por faixa de valores (preço, período) processada no backend
 - Ordenação física dos arquivos via Ordenação Externa (External Merge Sort com heap de k-vias)
+- Compressão e descompressão de arquivos de dados (Huffman e LZW) com taxa de compressão e verificação de integridade
+- Busca por casamento de padrões em texto (KMP e Boyer-Moore) com temporização separada por algoritmo e posições exatas dos matches
 - Dashboard com mapa interativo e geolocalização de imóveis
 
 ---
@@ -96,7 +100,15 @@ Hostly/
 │   │   │   │   ├── reservation_file_repo.go
 │   │   │   │   ├── amenity_file_repo.go
 │   │   │   │   └── property_amenity_file_repo.go
-│   │   │   └── web/handler/                     # Handlers HTTP
+│   │   │   ├── compression/                         # Algoritmos de compressão
+│   │   │   │   ├── huffman.go                       # Huffman encode/decode
+│   │   │   │   ├── lzw.go                           # LZW encode/decode
+│   │   │   │   └── engine.go                        # Orquestrador (Compress/Decompress)
+│   │   │   ├── patternmatch/                        # Casamento de padrões
+│   │   │   │   ├── kmp.go                           # KMP (tabela de falha + busca)
+│   │   │   │   ├── bm.go                            # Boyer-Moore (bad-char + busca)
+│   │   │   │   └── engine.go                        # Orquestrador (Search + temporização)
+│   │   │   └── web/handler/                         # Handlers HTTP
 │   │   │       ├── router.go
 │   │   │       ├── auth_handler.go
 │   │   │       ├── property_handler.go
@@ -105,7 +117,9 @@ Hostly/
 │   │   │       ├── amenity_handler.go
 │   │   │       ├── property_amenity_handler.go
 │   │   │       ├── dashboard_handler.go
-│   │   │       └── aed_handler.go               # Diagnóstico dos índices
+│   │   │       ├── compression_handler.go
+│   │   │       ├── patternmatch_handler.go
+│   │   │       └── aed_handler.go                   # Diagnóstico dos índices
 │   │   └── usecase/                             # Casos de uso / serviços
 │   │       ├── auth/
 │   │       ├── property/
@@ -127,6 +141,8 @@ Hostly/
 │   │   │   ├── AdminUsers.tsx
 │   │   │   ├── AdminProperties.tsx
 │   │   │   ├── AdminReservations.tsx
+│   │   │   ├── AdminCompressao.tsx              # Compressão (admin)
+│   │   │   ├── BuscaPadroesPage.tsx             # Busca por padrões (admin)
 │   │   │   ├── HostDashboard.tsx
 │   │   │   ├── HostListings.tsx
 │   │   │   ├── HostReservations.tsx
@@ -408,6 +424,106 @@ Após o merge, `RewriteSorted` substitui o arquivo original pelo sorted com reno
 
 ---
 
+## Compressão de Dados
+
+Dois algoritmos de compressão implementados do zero em Go, acessíveis via engine comum que expõe uma interface uniforme para ambos.
+
+### Huffman
+
+Compressão baseada em frequência de símbolos:
+
+1. Constrói tabela de frequência `map[byte]int` a partir dos dados
+2. Monta min-heap de nós `{ símbolo, frequência, esquerda, direita }`
+3. Funde os dois menores repetidamente até restar um nó raiz
+4. Percorre a árvore para atribuir códigos de bits (esquerda=0, direita=1)
+5. Serializa: tabela de frequências (para reconstrução) + padding + bitstream
+
+**Formato binário:**
+```
+[numSymbols uint16]
+[sym byte, freq uint32] × numSymbols   ← tabela de frequências
+[paddingBits byte]                     ← bits de padding no final
+[bitstream...]
+```
+
+A decodificação reconstrói a árvore a partir do cabeçalho e percorre bit a bit para recuperar os bytes originais.
+
+### LZW
+
+Compressão por dicionário expansível:
+
+1. Dicionário inicial: cada byte 0–255 mapeado para um código (nextCode = 256)
+2. Varre a entrada acumulando `w`; se `w+c` está no dicionário, estende; caso contrário emite o código de `w`, adiciona `w+c` ao dicionário, reinicia `w = c`
+3. Emite o código final de `w`
+
+**Formato binário:**
+```
+[count uint32]      ← número de códigos uint16
+[code uint16] × count
+```
+
+### Engine
+
+```go
+func (e *Engine) Compress(data []byte, algo string) (CompressResult, error)
+func (e *Engine) Decompress(data []byte, algo string, tamanhoOriginal int) (DecompressResult, error)
+```
+
+`CompressResult` retorna `tamanhoOriginal`, `tamanhoComprimido`, `taxa` (razão comprimido/original) e `dadosComprimidos` (base64).
+`DecompressResult` retorna `verificado` (bool: tamanho restaurado == original).
+
+---
+
+## Casamento de Padrões
+
+Dois algoritmos clássicos executados em paralelo sobre a mesma consulta, permitindo comparar desempenho e verificar concordância de posições.
+
+### KMP (Knuth-Morris-Pratt)
+
+```go
+func BuildFailure(pattern string) []int   // tabela de falha em O(m)
+func SearchKMP(text, pattern string) []int // varredura em O(n)
+```
+
+**Tabela de falha:** `fail[i]` é o comprimento do maior prefixo próprio de `pattern[0..i]` que também é sufixo. Construída em O(m) com um único passo.
+
+**Varredura:** mantém ponteiro `j` no padrão; em mismatch usa `fail[j-1]` para reutilizar prefixo já comparado, evitando retrocesso no texto.
+
+**Critério de aceitação:** `SearchKMP("abcabcabc", "abc") == [0, 3, 6]`
+
+### Boyer-Moore (bad-character)
+
+```go
+func BuildBadChar(pattern string) map[byte]int  // tabela bad-char em O(m)
+func SearchBM(text, pattern string) []int        // varredura com salto
+```
+
+**Tabela bad-character:** para cada byte, registra a posição mais à direita em que ele aparece no padrão.
+
+**Varredura:** alinha o padrão à esquerda; compara da direita para esquerda; em mismatch calcula `shift = max(1, j - badChar[text[i+j]])` e avança o alinhamento.
+
+**Critério de aceitação:** `SearchBM("abcabcabc", "abc") == [0, 3, 6]`
+
+### Engine
+
+```go
+func (e *Engine) Search(pattern, entity string, records []SearchableRecord) SearchResult
+```
+
+- Busca **case-insensitive**: `toLower(padrão)` e `toLower(valor do campo)` antes de cada chamada
+- Cronometra BM e KMP separadamente sobre todos os registros
+- Retorna `SearchResult` com posições por campo (`campo`, `posicao`), `preview` (valor do primeiro campo com match), e tempos em ms (`tempoMs_BM`, `tempoMs_KMP`)
+
+**Campos pesquisáveis por entidade:**
+
+| Entidade   | Campos                                                         |
+|------------|----------------------------------------------------------------|
+| `imoveis`  | `titulo`, `descricao`, `cidade`, `endereco.rua`, `endereco.bairro` |
+| `usuarios` | `nome`, `email`                                                |
+| `reservas` | `status`                                                       |
+
+---
+
 ## Compilação e Execução
 
 ### Pré-requisitos
@@ -593,6 +709,67 @@ GET /dashboard/stats
 }
 ```
 
+### Compressão
+
+```
+POST /compressao
+```
+
+Body:
+```json
+{ "entidade": "imoveis|usuarios|reservas", "algoritmo": "huffman|lzw" }
+```
+
+Resposta:
+```json
+{
+  "algoritmo": "huffman",
+  "tamanhoOriginal": 4096,
+  "tamanhoComprimido": 2048,
+  "taxa": 0.5,
+  "dadosComprimidos": "<base64>"
+}
+```
+
+```
+POST /descompressao
+```
+
+Body:
+```json
+{ "algoritmo": "huffman", "dadosComprimidos": "<base64>", "tamanhoOriginal": 4096 }
+```
+
+Resposta:
+```json
+{ "algoritmo": "huffman", "tamanhoOriginal": 4096, "tamanhoRestaurado": 4096, "verificado": true }
+```
+
+### Busca por Padrões
+
+```
+GET /busca/padrao?q=<padrão>&entidade=<imoveis|usuarios|reservas>
+```
+
+Resposta:
+```json
+{
+  "padrao": "praia",
+  "entidade": "imoveis",
+  "totalRegistros": 3,
+  "resultados": [
+    {
+      "id": 2,
+      "preview": "Casa de praia em Jurere",
+      "ocorrenciasBM":  [{ "campo": "titulo", "posicao": 8 }],
+      "ocorrenciasKMP": [{ "campo": "titulo", "posicao": 8 }]
+    }
+  ],
+  "tempoMs_BM": 0.532,
+  "tempoMs_KMP": 0.118
+}
+```
+
 ### AED — Diagnóstico dos índices
 
 ```
@@ -735,6 +912,10 @@ services/api.ts → cliente HTTP centralizado (injeta Bearer token automaticamen
 | **Arquitetura Hexagonal** | Domain / UseCase / Ports / Adapters | `internal/` |
 | **Geocodificação** | Coordenadas por CEP para pins no mapa | `features/map/` |
 | **Estado global persistido** | Token de sessão via Zustand + localStorage | `app/store.ts` |
+| **Huffman Encoding/Decoding** | Compressão de arquivos de dados por frequência de símbolos | `compression/huffman.go` |
+| **LZW Encoding/Decoding** | Compressão de arquivos de dados por dicionário expansível | `compression/lzw.go` |
+| **KMP (Knuth-Morris-Pratt)** | Busca de padrões em texto com tabela de falha em O(m+n) | `patternmatch/kmp.go` |
+| **Boyer-Moore (bad-character)** | Busca de padrões com salto por caractere ruim, O(mn) pior caso, sub-linear na prática | `patternmatch/bm.go` |
 
 ---
 
@@ -764,5 +945,6 @@ services/api.ts → cliente HTTP centralizado (injeta Bearer token automaticamen
 - Fase 1 — Concluída
 - Fase 2 — Concluída
 - Fase 3 — Concluída
+- Fase 4 — Concluída (Compressão de Dados + Casamento de Padrões)
 
 Projeto acadêmico desenvolvido para fins educacionais — AEDs III / PUC Minas.
