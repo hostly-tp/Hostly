@@ -12,6 +12,7 @@ import (
 	reservationuc "backend/internal/usecase/reservation"
 	useruc "backend/internal/usecase/user"
 	"net/http"
+	"sync"
 )
 
 type Dependencies struct {
@@ -29,15 +30,15 @@ type Dependencies struct {
 }
 
 func NewRouter(deps Dependencies) http.Handler {
-	props := handler.NewPropertyHandler(deps.PropertyService, deps.SortImoveis)
-	users := handler.NewUserHandler(deps.UserService)
-	reservs := handler.NewReservationHandler(deps.ReservationService, deps.SortReservas)
+	props := handler.NewPropertyHandler(deps.PropertyService, deps.SortImoveis, deps.PatternMatcher)
+	users := handler.NewUserHandler(deps.UserService, deps.PatternMatcher)
+	reservs := handler.NewReservationHandler(deps.ReservationService, deps.SortReservas, deps.PatternMatcher)
 	dash := handler.NewDashboardHandler(deps.PropertyService, deps.UserService, deps.ReservationService)
 	auth := handler.NewAuthHandler(deps.AuthService)
 	amenities := handler.NewAmenityHandler(deps.AmenityService)
 	propertyAmenities := handler.NewPropertyAmenityHandler(deps.PropertyAmenityService)
 	aed := handler.NewAEDHandler(deps.AEDService)
-	compress := handler.NewCompressionHandler(deps.Compressor)
+	backup := handler.NewBackupHandler(deps.Compressor)
 	pm := handler.NewPatternMatchHandler(deps.PatternMatcher, deps.PropertyService, deps.UserService, deps.ReservationService)
 
 	mux := http.NewServeMux()
@@ -76,8 +77,13 @@ func NewRouter(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /aed/diagnostico", aed.Diagnostico)
 	mux.HandleFunc("GET /aed/anfitriao/{id}", aed.RelacaoAnfitriao)
 
-	mux.HandleFunc("POST /compressao", compress.Compress)
-	mux.HandleFunc("POST /descompressao", compress.Decompress)
+	// Backup system — compresses all data files into a single .hbak archive.
+	// Auto-backup is triggered by the write-tracking middleware on every 5th write.
+	mux.HandleFunc("GET /backups", backup.List)
+	mux.HandleFunc("POST /backup", backup.Create)
+	mux.HandleFunc("POST /restaurar", backup.Restore)
+
+	// Pattern match diagnostic (BM vs KMP with timing metrics).
 	mux.HandleFunc("GET /busca/padrao", pm.Search)
 
 	mux.HandleFunc("GET /dashboard/stats", dash.Stats)
@@ -92,7 +98,66 @@ func NewRouter(deps Dependencies) http.Handler {
 	mux.HandleFunc("PUT /comodidades/{id}", amenities.Update)
 	mux.HandleFunc("DELETE /comodidades/{id}", amenities.Delete)
 
-	return withCORS(mux)
+	// Wrap the mux: CORS first, then auto-backup trigger on writes.
+	return withAutoBackup(withCORS(mux), backup)
+}
+
+// statusRecorder captures the HTTP status code written by a handler.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (sr *statusRecorder) WriteHeader(code int) {
+	sr.status = code
+	sr.ResponseWriter.WriteHeader(code)
+}
+
+// autoBackupState tracks write operations for automatic backup scheduling.
+// Access is protected by mu.
+var autoBackupState = struct {
+	mu    sync.Mutex
+	count int
+	algos []string
+	idx   int
+}{
+	algos: []string{"huffman", "lzw"},
+}
+
+const autoBackupThreshold = 5 // trigger backup every N successful writes
+
+// withAutoBackup wraps h so that after every autoBackupThreshold successful
+// write operations (POST/PUT/DELETE returning 2xx) a backup is created in the
+// background, alternating between Huffman and LZW.
+func withAutoBackup(h http.Handler, b *handler.BackupHandler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost && r.Method != http.MethodPut && r.Method != http.MethodDelete {
+			h.ServeHTTP(w, r)
+			return
+		}
+
+		rw := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		h.ServeHTTP(rw, r)
+
+		if rw.status < 200 || rw.status >= 300 {
+			return
+		}
+
+		autoBackupState.mu.Lock()
+		autoBackupState.count++
+		trigger := autoBackupState.count >= autoBackupThreshold
+		var algo string
+		if trigger {
+			autoBackupState.count = 0
+			algo = autoBackupState.algos[autoBackupState.idx%len(autoBackupState.algos)]
+			autoBackupState.idx++
+		}
+		autoBackupState.mu.Unlock()
+
+		if trigger {
+			go b.AutoBackup(algo)
+		}
+	})
 }
 
 func withCORS(next http.Handler) http.Handler {

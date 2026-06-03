@@ -16,8 +16,6 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminProperties from "./pages/AdminProperties";
 import AdminReservations from "./pages/AdminReservations";
 import AdminAmenities from "./pages/AdminAmenities";
-import AdminCompressao from "./pages/AdminCompressao";
-import BuscaPadroesPage from "./pages/BuscaPadroesPage";
 import PropertyDetailOverlay from "./features/properties/PropertyDetailOverlay";
 
 function RoleHome() {
@@ -115,8 +113,6 @@ export default function App() {
           <Route path="/admin/properties" element={<AdminProperties />} />
           <Route path="/admin/reservations" element={<AdminReservations />} />
           <Route path="/admin/amenities" element={<AdminAmenities />} />
-          <Route path="/admin/compressao" element={<AdminCompressao />} />
-          <Route path="/admin/busca-padroes" element={<BuscaPadroesPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

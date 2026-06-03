@@ -88,3 +88,13 @@ func runDecode(data []byte, algo string) ([]byte, error) {
 		return nil, errUnknownAlgo
 	}
 }
+
+// CompressRaw compresses data and returns raw bytes (no base64, no metadata).
+func (e *Engine) CompressRaw(data []byte, algo string) ([]byte, error) {
+	return runEncode(data, strings.ToLower(strings.TrimSpace(algo)))
+}
+
+// DecompressRaw decompresses raw bytes produced by CompressRaw.
+func (e *Engine) DecompressRaw(data []byte, algo string) ([]byte, error) {
+	return runDecode(data, strings.ToLower(strings.TrimSpace(algo)))
+}

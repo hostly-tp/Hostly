@@ -5,6 +5,22 @@ import (
 	"time"
 )
 
+// MatchBM reports whether pattern appears anywhere in text (case-insensitive) using Boyer-Moore.
+func MatchBM(text, pattern string) bool {
+	if pattern == "" {
+		return true
+	}
+	return len(SearchBM(strings.ToLower(text), strings.ToLower(pattern))) > 0
+}
+
+// MatchKMP reports whether pattern appears anywhere in text (case-insensitive) using KMP.
+func MatchKMP(text, pattern string) bool {
+	if pattern == "" {
+		return true
+	}
+	return len(SearchKMP(strings.ToLower(text), strings.ToLower(pattern))) > 0
+}
+
 type Engine struct{}
 
 func NewEngine() *Engine { return &Engine{} }

@@ -501,42 +501,44 @@ export const comodidadeService = {
   },
 };
 
-export type EntidadeCompactavel = "imoveis" | "usuarios" | "reservas";
 export type AlgoritmoCompressao = "huffman" | "lzw";
 
-export interface CompressaoResult {
+export interface BackupResult {
+  arquivo: string;
   algoritmo: AlgoritmoCompressao;
-  tamanhoOriginal: number;
-  tamanhoComprimido: number;
+  arquivos: string[];
+  tamanhoTotal: number;
+  tamanhoBackup: number;
   taxa: number;
-  dadosComprimidos: string;
 }
 
-export interface DescompressaoResult {
-  algoritmo: AlgoritmoCompressao;
-  tamanhoOriginal: number;
-  tamanhoRestaurado: number;
-  verificado: boolean;
+export interface BackupInfo {
+  arquivo: string;
+  algoritmo: string;
+  tamanho: number;
+  criadoEm: string;
 }
 
-export const compressaoService = {
-  async compress(
-    entidade: EntidadeCompactavel,
-    algoritmo: AlgoritmoCompressao,
-  ): Promise<CompressaoResult> {
-    return request<CompressaoResult>("/compressao", {
+export interface RestoreResult {
+  arquivo: string;
+  algoritmo: string;
+  arquivos: string[];
+}
+
+export const backupService = {
+  async create(algoritmo: AlgoritmoCompressao): Promise<BackupResult> {
+    return request<BackupResult>("/backup", {
       method: "POST",
-      body: JSON.stringify({ entidade, algoritmo }),
+      body: JSON.stringify({ algoritmo }),
     });
   },
-  async decompress(
-    algoritmo: AlgoritmoCompressao,
-    dadosComprimidos: string,
-    tamanhoOriginal: number,
-  ): Promise<DescompressaoResult> {
-    return request<DescompressaoResult>("/descompressao", {
+  async list(): Promise<BackupInfo[]> {
+    return request<BackupInfo[]>("/backups");
+  },
+  async restore(arquivo: string): Promise<RestoreResult> {
+    return request<RestoreResult>("/restaurar", {
       method: "POST",
-      body: JSON.stringify({ algoritmo, dadosComprimidos, tamanhoOriginal }),
+      body: JSON.stringify({ arquivo }),
     });
   },
 };

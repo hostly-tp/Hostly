@@ -7,8 +7,6 @@ import {
   TrendingUp,
   Users,
   Sparkles,
-  FileArchive,
-  Search,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -33,8 +31,6 @@ function getNav(tipo: string): NavItem[] {
       { to: "/admin/reservations", label: "Reservas", icon: <CalendarDays size={18} /> },
       { to: "/admin/users", label: "Usuários", icon: <Users size={18} /> },
       { to: "/admin/amenities", label: "Comodidades", icon: <Sparkles size={18} /> },
-      { to: "/admin/compressao", label: "Compressão", icon: <FileArchive size={18} /> },
-      { to: "/admin/busca-padroes", label: "Busca Padrões", icon: <Search size={18} /> },
     ];
   }
   if (tipo === "ANFITRIAO") {
