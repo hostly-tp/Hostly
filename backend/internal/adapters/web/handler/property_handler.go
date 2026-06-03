@@ -67,11 +67,10 @@ type propertyUpdatePayload struct {
 type PropertyHandler struct {
 	svc    property.Service
 	sortFn func(attr string, asc bool) error
-	pm     *patternmatch.Engine
 }
 
-func NewPropertyHandler(svc property.Service, sortFn func(attr string, asc bool) error, pm *patternmatch.Engine) *PropertyHandler {
-	return &PropertyHandler{svc: svc, sortFn: sortFn, pm: pm}
+func NewPropertyHandler(svc property.Service, sortFn func(attr string, asc bool) error) *PropertyHandler {
+	return &PropertyHandler{svc: svc, sortFn: sortFn}
 }
 
 func (h *PropertyHandler) List(w http.ResponseWriter, r *http.Request) {

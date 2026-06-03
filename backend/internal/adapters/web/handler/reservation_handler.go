@@ -34,11 +34,10 @@ type confirmReservationPayload struct {
 type ReservationHandler struct {
 	svc    reservationuc.Service
 	sortFn func(attr string, asc bool) error
-	pm     *patternmatch.Engine
 }
 
-func NewReservationHandler(svc reservationuc.Service, sortFn func(attr string, asc bool) error, pm *patternmatch.Engine) *ReservationHandler {
-	return &ReservationHandler{svc: svc, sortFn: sortFn, pm: pm}
+func NewReservationHandler(svc reservationuc.Service, sortFn func(attr string, asc bool) error) *ReservationHandler {
+	return &ReservationHandler{svc: svc, sortFn: sortFn}
 }
 
 func (h *ReservationHandler) List(w http.ResponseWriter, r *http.Request) {

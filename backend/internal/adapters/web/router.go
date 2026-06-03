@@ -30,9 +30,9 @@ type Dependencies struct {
 }
 
 func NewRouter(deps Dependencies) http.Handler {
-	props := handler.NewPropertyHandler(deps.PropertyService, deps.SortImoveis, deps.PatternMatcher)
-	users := handler.NewUserHandler(deps.UserService, deps.PatternMatcher)
-	reservs := handler.NewReservationHandler(deps.ReservationService, deps.SortReservas, deps.PatternMatcher)
+	props := handler.NewPropertyHandler(deps.PropertyService, deps.SortImoveis)
+	users := handler.NewUserHandler(deps.UserService)
+	reservs := handler.NewReservationHandler(deps.ReservationService, deps.SortReservas)
 	dash := handler.NewDashboardHandler(deps.PropertyService, deps.UserService, deps.ReservationService)
 	auth := handler.NewAuthHandler(deps.AuthService)
 	amenities := handler.NewAmenityHandler(deps.AmenityService)

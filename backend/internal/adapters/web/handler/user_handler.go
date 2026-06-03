@@ -29,11 +29,10 @@ type userUpdatePayload struct {
 
 type UserHandler struct {
 	svc useruc.Service
-	pm  *patternmatch.Engine
 }
 
-func NewUserHandler(svc useruc.Service, pm *patternmatch.Engine) *UserHandler {
-	return &UserHandler{svc: svc, pm: pm}
+func NewUserHandler(svc useruc.Service) *UserHandler {
+	return &UserHandler{svc: svc}
 }
 
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {

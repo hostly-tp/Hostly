@@ -170,7 +170,7 @@ Hostly/
 | nome     | string                                | Obrigatório              |
 | email    | string                                | Único                    |
 | telefone | string                                | Opcional                 |
-| senha    | string                                | Armazenada com hash      |
+| senha    | string                                | XOR a implementar (Fase 5) |
 | tipo     | `ADMIN` \| `ANFITRIAO` \| `HOSPEDE`   |                          |
 | ativo    | bool                                  | Exclusão lógica          |
 
