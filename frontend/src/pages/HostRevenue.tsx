@@ -159,6 +159,14 @@ export default function HostRevenue() {
                       {item.confirmed} confirmada{item.confirmed !== 1 ? "s" : ""} · {item.reservations.length} total
                     </div>
                     {/* Progress bar */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-4)", letterSpacing: "0.02em" }}>
+                        Participação na receita total
+                      </span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--accent)" }}>
+                        {pct.toFixed(0)}%
+                      </span>
+                    </div>
                     <div style={{ height: 4, borderRadius: 99, background: "var(--border)", overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${pct}%`, background: "var(--accent)", borderRadius: 99, transition: "width 600ms ease" }} />
                     </div>
@@ -168,7 +176,7 @@ export default function HostRevenue() {
                       {fmt(item.revenue)}
                     </div>
                     <div style={{ fontSize: 11, color: "var(--ink-4)" }}>
-                      {pct.toFixed(0)}% do total
+                      {item.confirmed} reserva{item.confirmed !== 1 ? "s" : ""} confirmada{item.confirmed !== 1 ? "s" : ""}
                     </div>
                   </div>
                 </div>
