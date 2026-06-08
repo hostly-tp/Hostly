@@ -68,7 +68,7 @@ export default function AdminAmenities() {
     setSubmitting(true);
     setError(null);
     try {
-      const payload: CreateComodidadeInput = { nome: form.nome, descricao: form.descricao || undefined, icone: form.icone || undefined, ativo: form.ativo };
+      const payload: CreateComodidadeInput = { nome: form.nome, descricao: form.descricao || undefined, icone: form.icone || undefined, ativo: editing ? form.ativo : true };
       if (editing) {
         await comodidadeService.update(editing.idComodidade, payload);
       } else {
@@ -107,10 +107,12 @@ export default function AdminAmenities() {
             <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-3)", display: "block", marginBottom: 6 }}>Ícone (slug)</label>
             <input className="field-input" value={form.icone} onChange={(e) => setForm((f) => ({ ...f, icone: e.target.value }))} placeholder="Ex: wifi, pool, gym" />
           </div>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
-            <input type="checkbox" checked={form.ativo} onChange={(e) => setForm((f) => ({ ...f, ativo: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "var(--accent)" }} />
-            Comodidade ativa
-          </label>
+          {editing && (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
+              <input type="checkbox" checked={form.ativo} onChange={(e) => setForm((f) => ({ ...f, ativo: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "var(--accent)" }} />
+              Comodidade ativa
+            </label>
+          )}
           {error && <div style={{ padding: "10px 14px", borderRadius: "var(--radius-md)", background: "var(--red-tint)", color: "var(--red)", fontSize: 13 }}>{error}</div>}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button type="button" onClick={() => setView("list")} className="btn btn-secondary">Cancelar</button>

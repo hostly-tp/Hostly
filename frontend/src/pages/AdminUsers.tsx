@@ -86,7 +86,7 @@ export default function AdminUsers() {
         email: form.email,
         telefone: form.telefone || undefined,
         tipo: form.tipo,
-        ativo: form.ativo,
+        ativo: editing ? form.ativo : true,
         ...(form.senha ? { senha: form.senha } : {}),
       };
       if (editing) {
@@ -139,10 +139,12 @@ export default function AdminUsers() {
               <option value="ADMIN">Admin</option>
             </select>
           </FormField>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
-            <input type="checkbox" checked={form.ativo} onChange={(e) => setForm((f) => ({ ...f, ativo: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "var(--accent)" }} />
-            Usuário ativo
-          </label>
+          {editing && (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
+              <input type="checkbox" checked={form.ativo} onChange={(e) => setForm((f) => ({ ...f, ativo: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "var(--accent)" }} />
+              Usuário ativo
+            </label>
+          )}
           {error && <div style={{ padding: "10px 14px", borderRadius: "var(--radius-md)", background: "var(--red-tint)", color: "var(--red)", fontSize: 13 }}>{error}</div>}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4 }}>
             <button type="button" onClick={() => setView("list")} className="btn btn-secondary">Cancelar</button>

@@ -2,7 +2,7 @@ package crypto
 
 import "encoding/hex"
 
-const DefaultKey = "hostly-2024"
+var DefaultKey = "hostly-2026"
 
 func Encrypt(text, key string) string {
 	if key == "" {
