@@ -11,12 +11,14 @@ import {
   FileArchive,
   CheckCircle2,
   Clock,
+  Download,
 } from "lucide-react";
 import {
   dashboardService,
   backupService,
   type DashboardStats,
   type BackupInfo,
+  type AlgoritmoCompressao,
 } from "../services/api";
 
 function fmt(v: number) {
@@ -35,9 +37,9 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [latestBackup, setLatestBackup] = useState<BackupInfo | null>(null);
   const [backupCount, setBackupCount] = useState(0);
+  const [creatingBackup, setCreatingBackup] = useState<AlgoritmoCompressao | null>(null);
 
-  useEffect(() => {
-    dashboardService.getStats().then(setStats).finally(() => setLoading(false));
+  const refreshBackups = () => {
     backupService.list().then((list) => {
       setBackupCount(list.length);
       if (list.length > 0) {
@@ -45,7 +47,24 @@ export default function AdminDashboard() {
         setLatestBackup(sorted[0]);
       }
     }).catch(() => { });
+  };
+
+  useEffect(() => {
+    dashboardService.getStats().then(setStats).finally(() => setLoading(false));
+    refreshBackups();
   }, []);
+
+  const handleCreateBackup = async (algo: AlgoritmoCompressao) => {
+    setCreatingBackup(algo);
+    try {
+      await backupService.create(algo);
+      refreshBackups();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Erro ao criar backup");
+    } finally {
+      setCreatingBackup(null);
+    }
+  };
 
   const sections = [
     {
@@ -241,23 +260,20 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {latestBackup && (
-            <div
-              style={{
-                fontSize: 11,
-                color: "var(--ink-4)",
-                fontFamily: "monospace",
-                maxWidth: 220,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-              title={latestBackup.arquivo}
-            >
-              {latestBackup.arquivo}
-            </div>
-          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+            {(["huffman", "lzw"] as AlgoritmoCompressao[]).map((algo) => (
+              <button
+                key={algo}
+                onClick={() => handleCreateBackup(algo)}
+                disabled={creatingBackup !== null}
+                className="btn btn-secondary btn-sm"
+                style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "center" }}
+              >
+                <Download size={12} />
+                {creatingBackup === algo ? "Criando..." : algo.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
