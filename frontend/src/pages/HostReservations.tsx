@@ -1,7 +1,16 @@
 import { useEffect, useState, useCallback } from "react";
 import { Search, CalendarDays, MapPin, X, Check, Clock, Ban } from "lucide-react";
-import { reservaService, imoveisService, type Reserva, type Imovel } from "../services/api";
+import { reservaService, imoveisService, usuarioService, type Reserva, type Imovel } from "../services/api";
 import { useStore } from "../app/store";
+
+function reservaCode(id: number): string {
+  return "RES-" + id.toString(36).toUpperCase().padStart(3, "0");
+}
+function abbrevName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length <= 1 || name.length <= 18) return name;
+  return parts[0] + " " + parts.slice(1).map((p) => p[0] + ".").join(" ");
+}
 
 function fmt(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -26,6 +35,7 @@ export default function HostReservations() {
   const [periodoDe, setPeriodoDe] = useState("");
   const [periodoAte, setPeriodoAte] = useState("");
   const [selected, setSelected] = useState<Reserva | null>(null);
+  const [hospedeMap, setHospedeMap] = useState<Record<number, string>>({});
   const [confirming, setConfirming] = useState<number | null>(null);
   const [cancelling, setCancelling] = useState<number | null>(null);
 
@@ -51,8 +61,12 @@ export default function HostReservations() {
 
       const ids = [...new Set(res.map((r) => r.idImovel))];
       const map: Record<number, Imovel> = {};
-      await Promise.all(ids.map((id) => imoveisService.getById(id).then((p) => { map[id] = p; }).catch(() => {})));
+      const [, users] = await Promise.all([
+        Promise.all(ids.map((id) => imoveisService.getById(id).then((p) => { map[id] = p; }).catch(() => {}))),
+        usuarioService.getAll(),
+      ]);
       setProperties(map);
+      setHospedeMap(Object.fromEntries(users.map((u) => [u.idUsuario, u.nome])));
     } finally {
       setLoading(false);
     }
@@ -90,7 +104,6 @@ export default function HostReservations() {
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* Header */}
         <div style={{ padding: "24px 28px 0", flexShrink: 0 }}>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.04em", margin: "0 0 4px" }}>
             Reservas Recebidas
@@ -158,7 +171,7 @@ export default function HostReservations() {
                         {prop?.titulo ?? `Imóvel #${r.idImovel}`}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 4 }}>
-                        Hóspede #{r.idHospede} · {r.dataInicio} → {r.dataFim}
+                        {abbrevName(hospedeMap[r.idHospede] ?? "Hóspede #" + r.idHospede)} · {r.dataInicio} → {r.dataFim}
                       </div>
                       {r.status === "PENDENTE" && (
                         <button onClick={(e) => { e.stopPropagation(); handleConfirm(r); }}
@@ -183,7 +196,6 @@ export default function HostReservations() {
         </div>
       </div>
 
-      {/* Detail */}
       {selected && (
         <div className="anim-slide-right"
           style={{
@@ -193,7 +205,7 @@ export default function HostReservations() {
           }}>
           <div style={{ padding: "20px 20px 0", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-              Reserva #{selected.idReserva}
+              {reservaCode(selected.idReserva)}
             </h3>
             <button onClick={() => setSelected(null)} style={{ background: "none", border: "none", color: "var(--ink-3)", display: "flex", padding: 4 }}>
               <X size={18} />
@@ -202,7 +214,7 @@ export default function HostReservations() {
           <div style={{ padding: "16px 20px", flex: 1 }}>
             <div className="card" style={{ padding: "14px 16px", marginBottom: 12 }}>
               {[
-                ["Hóspede", `#${selected.idHospede}`],
+                ["Hóspede", abbrevName(hospedeMap[selected.idHospede] ?? "#" + selected.idHospede)],
                 ["Imóvel", properties[selected.idImovel]?.titulo ?? `#${selected.idImovel}`],
                 ["Check-in", selected.dataInicio],
                 ["Check-out", selected.dataFim],

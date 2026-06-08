@@ -11,12 +11,14 @@ import {
   FileArchive,
   CheckCircle2,
   Clock,
+  Download,
 } from "lucide-react";
 import {
   dashboardService,
   backupService,
   type DashboardStats,
   type BackupInfo,
+  type AlgoritmoCompressao,
 } from "../services/api";
 
 function fmt(v: number) {
@@ -35,18 +37,34 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [latestBackup, setLatestBackup] = useState<BackupInfo | null>(null);
   const [backupCount, setBackupCount] = useState(0);
+  const [creatingBackup, setCreatingBackup] = useState<AlgoritmoCompressao | null>(null);
 
-  useEffect(() => {
-    dashboardService.getStats().then(setStats).finally(() => setLoading(false));
+  const refreshBackups = () => {
     backupService.list().then((list) => {
       setBackupCount(list.length);
       if (list.length > 0) {
-        // Most recent backup is the last alphabetically (timestamp in filename)
         const sorted = [...list].sort((a, b) => b.arquivo.localeCompare(a.arquivo));
         setLatestBackup(sorted[0]);
       }
-    }).catch(() => {/* ignore */});
+    }).catch(() => { });
+  };
+
+  useEffect(() => {
+    dashboardService.getStats().then(setStats).finally(() => setLoading(false));
+    refreshBackups();
   }, []);
+
+  const handleCreateBackup = async (algo: AlgoritmoCompressao) => {
+    setCreatingBackup(algo);
+    try {
+      await backupService.create(algo);
+      refreshBackups();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Erro ao criar backup");
+    } finally {
+      setCreatingBackup(null);
+    }
+  };
 
   const sections = [
     {
@@ -85,7 +103,6 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 960, margin: "0 auto" }}>
-      {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
           <Activity size={20} style={{ color: "var(--accent)" }} />
@@ -98,7 +115,6 @@ export default function AdminDashboard() {
         </h1>
       </div>
 
-      {/* Platform KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 32 }}>
         <BigKpi
           label="Imóveis ativos"
@@ -121,7 +137,6 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Section cards */}
       <div>
         <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 14px" }}>
           Gerenciamento
@@ -183,7 +198,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Data integrity / backup status */}
       <div style={{ marginTop: 20 }}>
         <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 14px" }}>
           Integridade dos Dados
@@ -246,27 +260,23 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {latestBackup && (
-            <div
-              style={{
-                fontSize: 11,
-                color: "var(--ink-4)",
-                fontFamily: "monospace",
-                maxWidth: 220,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-              title={latestBackup.arquivo}
-            >
-              {latestBackup.arquivo}
-            </div>
-          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+            {(["huffman", "lzw"] as AlgoritmoCompressao[]).map((algo) => (
+              <button
+                key={algo}
+                onClick={() => handleCreateBackup(algo)}
+                disabled={creatingBackup !== null}
+                className="btn btn-secondary btn-sm"
+                style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "center" }}
+              >
+                <Download size={12} />
+                {creatingBackup === algo ? "Criando..." : algo.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Explore shortcut */}
       <div
         style={{
           marginTop: 16,

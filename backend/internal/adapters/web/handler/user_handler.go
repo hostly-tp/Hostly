@@ -88,7 +88,6 @@ func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// BM post-filter on name and email when a text query is present.
 	if q := busca; q != "" {
 		var matched []domain.User
 		for _, u := range users {

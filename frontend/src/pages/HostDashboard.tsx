@@ -39,6 +39,8 @@ export default function HostDashboard() {
       .finally(() => setLoadingRes(false));
   }, [user]);
 
+  const listingMap = Object.fromEntries(listings.map((l) => [l.idImovel, l.titulo]));
+
   const revenue = reservations
     .filter((r) => r.status === "CONFIRMADA")
     .reduce((acc, r) => acc + r.valorTotal, 0);
@@ -48,7 +50,6 @@ export default function HostDashboard() {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 1000, margin: "0 auto" }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.04em", margin: "0 0 4px" }}>
@@ -66,7 +67,6 @@ export default function HostDashboard() {
         </button>
       </div>
 
-      {/* KPI row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
         <KpiCard
           icon={<Building2 size={20} />}
@@ -100,7 +100,6 @@ export default function HostDashboard() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20 }}>
-        {/* My listings */}
         <div>
           <SectionHeader
             title="Meus imóveis"
@@ -183,7 +182,6 @@ export default function HostDashboard() {
           )}
         </div>
 
-        {/* Recent reservations */}
         <div>
           <SectionHeader
             title="Reservas recentes"
@@ -205,8 +203,8 @@ export default function HostDashboard() {
                     style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>
-                        Imóvel #{r.idImovel}
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {listingMap[r.idImovel] ?? "Imóvel #" + r.idImovel}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--ink-3)" }}>
                         {r.dataInicio} → {r.dataFim}
@@ -228,7 +226,6 @@ export default function HostDashboard() {
         </div>
       </div>
 
-      {/* Revenue CTA */}
       <div
         style={{
           marginTop: 24,

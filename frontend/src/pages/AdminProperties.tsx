@@ -1,6 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { Search, Building2, MapPin, Trash2, Eye } from "lucide-react";
-import { imoveisService, type Imovel } from "../services/api";
+import { imoveisService, usuarioService, type Imovel } from "../services/api";
+
+function abbrevName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length <= 1 || name.length <= 18) return name;
+  return parts[0] + " " + parts.slice(1).map((p) => p[0] + ".").join(" ");
+}
+function imovelCode(id: number): string {
+  return "IMO-" + id.toString(36).toUpperCase().padStart(3, "0");
+}
 import { useStore } from "../app/store";
 
 function fmt(v: number) {
@@ -13,12 +22,17 @@ export default function AdminProperties() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [hostMap, setHostMap] = useState<Record<number, string>>({});
 
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await imoveisService.getAll(search ? { busca: search } : undefined);
+      const [data, users] = await Promise.all([
+        imoveisService.getAll(search ? { busca: search } : undefined),
+        usuarioService.getAll(),
+      ]);
       setProperties(data);
+      setHostMap(Object.fromEntries(users.map((u) => [u.idUsuario, u.nome])));
     } finally {
       setLoading(false);
     }
@@ -75,6 +89,7 @@ export default function AdminProperties() {
           <table className="data-table">
             <thead>
               <tr>
+                <th>#</th>
                 <th>Imóvel</th>
                 <th>Cidade</th>
                 <th>Anfitrião</th>
@@ -86,6 +101,7 @@ export default function AdminProperties() {
             <tbody>
               {properties.map((p) => (
                 <tr key={p.idImovel}>
+                  <td style={{ fontSize: 11, color: "var(--ink-4)", fontFamily: "monospace", fontWeight: 600, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>{imovelCode(p.idImovel)}</td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       {p.fotos?.[0] ? (
@@ -105,7 +121,7 @@ export default function AdminProperties() {
                       <MapPin size={11} /> {p.cidade}
                     </div>
                   </td>
-                  <td style={{ fontSize: 12, color: "var(--ink-3)" }}>#{p.idUsuario}</td>
+                  <td style={{ fontSize: 12, color: "var(--ink-2)" }}>{abbrevName(hostMap[p.idUsuario] ?? "#" + p.idUsuario)}</td>
                   <td style={{ fontSize: 13, fontWeight: 600 }}>{fmt(p.valorDiaria)}</td>
                   <td>
                     <button

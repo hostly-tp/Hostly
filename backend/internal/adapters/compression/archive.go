@@ -7,20 +7,13 @@ import (
 	"io"
 )
 
-const archiveMagic = uint32(0x484C5442) // "HLTB"
+const archiveMagic = uint32(0x484C5442)
 
-// ArchiveEntry represents a single file inside a backup archive.
 type ArchiveEntry struct {
 	Name string
 	Data []byte
 }
 
-// Pack serializes multiple files into a single byte slice.
-//
-// Layout:
-//
-//	[magic uint32][numEntries uint16]
-//	for each entry: [nameLen uint16][name bytes][dataLen uint32][data bytes]
 func Pack(entries []ArchiveEntry) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := binary.Write(&buf, binary.BigEndian, archiveMagic); err != nil {
@@ -43,7 +36,6 @@ func Pack(entries []ArchiveEntry) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Unpack reverses Pack.
 func Unpack(data []byte) ([]ArchiveEntry, error) {
 	r := bytes.NewReader(data)
 

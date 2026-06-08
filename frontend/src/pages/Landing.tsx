@@ -50,7 +50,6 @@ export default function Landing() {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      {/* LEFT — Auth Panel */}
       <div
         style={{
           width: "42%",
@@ -66,7 +65,6 @@ export default function Landing() {
           zIndex: 10,
         }}
       >
-        {/* Logo */}
         <div style={{ padding: "32px 40px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <img src={logoImg} alt="Hostly" style={{ width: 36, height: 36, borderRadius: 10, objectFit: "cover" }} />
@@ -76,7 +74,6 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Hero text */}
         <div style={{ padding: "36px 40px 28px" }}>
           <h1
             style={{
@@ -97,7 +94,6 @@ export default function Landing() {
           </p>
         </div>
 
-        {/* Value props */}
         <div style={{ padding: "0 40px 28px", display: "flex", flexDirection: "column", gap: 10 }}>
           {[
             { icon: <Shield size={14} />, text: "Pagamento seguro e protegido" },
@@ -111,15 +107,12 @@ export default function Landing() {
           ))}
         </div>
 
-        {/* Divider */}
         <div style={{ height: 1, background: "var(--border)", margin: "0 40px 28px" }} />
 
-        {/* Auth form */}
         <div style={{ padding: "0 40px", flex: 1 }}>
           <AuthPanel />
         </div>
 
-        {/* Map hint */}
         <div
           style={{
             margin: "28px 40px 0",
@@ -143,7 +136,6 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* RIGHT — Map */}
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         <MapContainer
           center={BRAZIL_CENTER}
@@ -180,7 +172,6 @@ export default function Landing() {
           ))}
         </MapContainer>
 
-        {/* Map overlay label */}
         <div
           style={{
             position: "absolute",

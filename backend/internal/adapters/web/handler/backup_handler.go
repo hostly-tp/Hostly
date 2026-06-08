@@ -13,7 +13,6 @@ import (
 	"time"
 )
 
-// BackupHandler cria, lista e restaura backups comprimidos de todos os arquivos de dados.
 type BackupHandler struct {
 	engine *compression.Engine
 }
@@ -22,7 +21,6 @@ func NewBackupHandler(e *compression.Engine) *BackupHandler {
 	return &BackupHandler{engine: e}
 }
 
-// BackupResult is returned after a successful backup creation.
 type BackupResult struct {
 	Arquivo       string   `json:"arquivo"`
 	Algoritmo     string   `json:"algoritmo"`
@@ -32,23 +30,19 @@ type BackupResult struct {
 	Taxa          float64  `json:"taxa"`
 }
 
-// BackupInfo describes a backup file on disk.
 type BackupInfo struct {
 	Arquivo   string `json:"arquivo"`
 	Algoritmo string `json:"algoritmo"`
 	Tamanho   int64  `json:"tamanho"`
-	CriadoEm string `json:"criadoEm"`
+	CriadoEm  string `json:"criadoEm"`
 }
 
-// RestoreResult is returned after a successful restore.
 type RestoreResult struct {
 	Arquivo   string   `json:"arquivo"`
 	Algoritmo string   `json:"algoritmo"`
 	Arquivos  []string `json:"arquivos"`
 }
 
-// collectDataFiles returns all persistent data files in the data/ directory,
-// excluding backup files (.hbak) and transient sort files.
 func collectDataFiles() ([]string, error) {
 	entries, err := os.ReadDir("data")
 	if err != nil {
@@ -71,8 +65,6 @@ func collectDataFiles() ([]string, error) {
 	return files, nil
 }
 
-// AutoBackup creates a compressed backup of all data files without an HTTP context.
-// It is called by the write-tracking middleware after every N successful writes.
 func (h *BackupHandler) AutoBackup(algo string) {
 	paths, err := collectDataFiles()
 	if err != nil {
@@ -113,8 +105,6 @@ func (h *BackupHandler) AutoBackup(algo string) {
 		filename, totalSize, len(compressed), float64(len(compressed))/float64(totalSize)*100)
 }
 
-// algoFromFilename extracts the compression algorithm from a backup filename.
-// Expected format: backup-YYYYMMDD-HHMMSS-{algo}.hbak
 func algoFromFilename(filename string) string {
 	name := strings.TrimSuffix(filename, ".hbak")
 	parts := strings.Split(name, "-")
@@ -128,8 +118,6 @@ type backupCreateRequest struct {
 	Algoritmo string `json:"algoritmo"`
 }
 
-// Create packs all data files into a single archive, compresses it with the
-// chosen algorithm (huffman or lzw), and saves it to data/.
 func (h *BackupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req backupCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -198,7 +186,6 @@ func (h *BackupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// List returns metadata for all backup files found in data/.
 func (h *BackupHandler) List(w http.ResponseWriter, r *http.Request) {
 	entries, err := os.ReadDir("data")
 	if err != nil {
@@ -232,8 +219,6 @@ type restoreRequest struct {
 	Arquivo string `json:"arquivo"`
 }
 
-// Restore reads a backup file, decompresses it, unpacks the archive, and
-// writes each file back to the data/ directory.
 func (h *BackupHandler) Restore(w http.ResponseWriter, r *http.Request) {
 	var req restoreRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -245,7 +230,6 @@ func (h *BackupHandler) Restore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Sanitize: reject any path traversal attempt.
 	clean := filepath.Base(req.Arquivo)
 	if !strings.HasSuffix(clean, ".hbak") {
 		respondError(w, http.StatusBadRequest, errors.New("arquivo inválido: deve ter extensão .hbak"))

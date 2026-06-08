@@ -77,13 +77,10 @@ func NewRouter(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /aed/diagnostico", aed.Diagnostico)
 	mux.HandleFunc("GET /aed/anfitriao/{id}", aed.RelacaoAnfitriao)
 
-	// Backup system — compresses all data files into a single .hbak archive.
-	// Auto-backup is triggered by the write-tracking middleware on every 5th write.
 	mux.HandleFunc("GET /backups", backup.List)
 	mux.HandleFunc("POST /backup", backup.Create)
 	mux.HandleFunc("POST /restaurar", backup.Restore)
 
-	// Pattern match diagnostic (BM vs KMP with timing metrics).
 	mux.HandleFunc("GET /busca/padrao", pm.Search)
 
 	mux.HandleFunc("GET /dashboard/stats", dash.Stats)
@@ -98,11 +95,9 @@ func NewRouter(deps Dependencies) http.Handler {
 	mux.HandleFunc("PUT /comodidades/{id}", amenities.Update)
 	mux.HandleFunc("DELETE /comodidades/{id}", amenities.Delete)
 
-	// Wrap the mux: CORS first, then auto-backup trigger on writes.
 	return withAutoBackup(withCORS(mux), backup)
 }
 
-// statusRecorder captures the HTTP status code written by a handler.
 type statusRecorder struct {
 	http.ResponseWriter
 	status int
@@ -113,8 +108,6 @@ func (sr *statusRecorder) WriteHeader(code int) {
 	sr.ResponseWriter.WriteHeader(code)
 }
 
-// autoBackupState tracks write operations for automatic backup scheduling.
-// Access is protected by mu.
 var autoBackupState = struct {
 	mu    sync.Mutex
 	count int
@@ -124,11 +117,8 @@ var autoBackupState = struct {
 	algos: []string{"huffman", "lzw"},
 }
 
-const autoBackupThreshold = 5 // trigger backup every N successful writes
+const autoBackupThreshold = 5
 
-// withAutoBackup wraps h so that after every autoBackupThreshold successful
-// write operations (POST/PUT/DELETE returning 2xx) a backup is created in the
-// background, alternating between Huffman and LZW.
 func withAutoBackup(h http.Handler, b *handler.BackupHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost && r.Method != http.MethodPut && r.Method != http.MethodDelete {

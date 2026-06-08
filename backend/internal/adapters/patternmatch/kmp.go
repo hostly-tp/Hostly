@@ -1,7 +1,6 @@
 package patternmatch
 
-// BuildFailure builds the KMP partial-match (failure) table.
-func BuildFailure(pattern string) []int {
+func buildFailure(pattern string) []int {
 	m := len(pattern)
 	fail := make([]int, m)
 	fail[0] = 0
@@ -18,12 +17,11 @@ func BuildFailure(pattern string) []int {
 	return fail
 }
 
-// SearchKMP returns the start index of every occurrence of pattern in text.
 func SearchKMP(text, pattern string) []int {
 	if len(pattern) == 0 {
 		return nil
 	}
-	fail := BuildFailure(pattern)
+	fail := buildFailure(pattern)
 	var result []int
 	j := 0
 	for i := 0; i < len(text); i++ {

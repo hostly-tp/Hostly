@@ -1,6 +1,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { Search, CalendarDays, Trash2 } from "lucide-react";
-import { reservaService, type Reserva } from "../services/api";
+import { reservaService, imoveisService, usuarioService, type Reserva } from "../services/api";
+
+function reservaCode(id: number): string {
+  return "RES-" + id.toString(36).toUpperCase().padStart(3, "0");
+}
+function abbrevName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length <= 1 || name.length <= 18) return name;
+  return parts[0] + " " + parts.slice(1).map((p) => p[0] + ".").join(" ");
+}
+function abbrevTitle(title: string): string {
+  return title.length > 26 ? title.slice(0, 26) + "…" : title;
+}
 
 function fmt(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -23,6 +35,8 @@ export default function AdminReservations() {
   const [periodoDe, setPeriodoDe] = useState("");
   const [periodoAte, setPeriodoAte] = useState("");
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [hospedeMap, setHospedeMap] = useState<Record<number, string>>({});
+  const [imovelMap, setImovelMap] = useState<Record<number, string>>({});
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 400);
@@ -37,8 +51,14 @@ export default function AdminReservations() {
       if (search.trim()) params.busca = search.trim();
       if (periodoDe) params.periodoDe = periodoDe;
       if (periodoAte) params.periodoAte = periodoAte;
-      const data = await reservaService.getAll(params);
+      const [data, users, imoveis] = await Promise.all([
+        reservaService.getAll(params),
+        usuarioService.getAll(),
+        imoveisService.getAll(),
+      ]);
       setReservations(data);
+      setHospedeMap(Object.fromEntries(users.map((u) => [u.idUsuario, u.nome])));
+      setImovelMap(Object.fromEntries(imoveis.map((p) => [p.idImovel, p.titulo])));
     } finally {
       setLoading(false);
     }
@@ -117,9 +137,9 @@ export default function AdminReservations() {
                 const { label, cls } = statusInfo(r.status);
                 return (
                   <tr key={r.idReserva}>
-                    <td style={{ fontSize: 12, color: "var(--ink-3)" }}>#{r.idReserva}</td>
-                    <td style={{ fontSize: 12 }}>Imóvel #{r.idImovel}</td>
-                    <td style={{ fontSize: 12 }}>Hóspede #{r.idHospede}</td>
+                    <td style={{ fontSize: 11, color: "var(--ink-4)", fontFamily: "monospace", fontWeight: 600, letterSpacing: "0.04em" }}>{reservaCode(r.idReserva)}</td>
+                    <td style={{ fontSize: 12, color: "var(--ink-2)" }}>{abbrevTitle(imovelMap[r.idImovel] ?? "Imóvel #" + r.idImovel)}</td>
+                    <td style={{ fontSize: 12, color: "var(--ink-2)" }}>{abbrevName(hospedeMap[r.idHospede] ?? "Hóspede #" + r.idHospede)}</td>
                     <td style={{ fontSize: 12 }}>
                       <div style={{ color: "var(--ink-2)" }}>{r.dataInicio}</div>
                       <div style={{ color: "var(--ink-3)" }}>→ {r.dataFim}</div>

@@ -37,6 +37,8 @@ interface FormState {
   selectedComodidades: number[];
 }
 
+const MAX_PHOTOS = 5;
+
 const EMPTY_FORM: FormState = {
   titulo: "",
   descricao: "",
@@ -60,6 +62,7 @@ export default function HostListings() {
   const [editing, setEditing] = useState<Imovel | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [files, setFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
@@ -79,6 +82,12 @@ export default function HostListings() {
     fetchListings();
     comodidadeService.getAll().then((a) => setAmenities(a.filter((x) => x.ativo)));
   }, [fetchListings]);
+
+  useEffect(() => {
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setPreviewUrls(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [files]);
 
   const openNew = () => {
     setEditing(null);
@@ -189,7 +198,6 @@ export default function HostListings() {
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {/* Basic info */}
           <FormSection title="Informações básicas">
             <FormField label="Título" required>
               <input className="field-input" placeholder="Ex: Apartamento moderno no centro" value={form.titulo} onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))} required minLength={4} />
@@ -202,7 +210,6 @@ export default function HostListings() {
             </FormField>
           </FormSection>
 
-          {/* Address */}
           <FormSection title="Endereço">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <FormField label="Cidade" required>
@@ -226,31 +233,71 @@ export default function HostListings() {
             </div>
           </FormSection>
 
-          {/* Photos */}
-          <FormSection title={editing ? "Fotos (deixe vazio para manter)" : "Fotos *"}>
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "16px 20px",
-                borderRadius: "var(--radius-md)",
-                border: "2px dashed var(--border-strong)",
-                cursor: "pointer",
-                color: files.length ? "var(--ink)" : "var(--ink-4)",
-                fontSize: 14,
-                transition: "border-color 140ms ease",
-              }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--accent)")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)")}
-            >
-              <Upload size={20} style={{ color: "var(--accent)" }} />
-              {files.length > 0 ? `${files.length} foto(s) selecionada(s)` : "Clique para selecionar fotos"}
-              <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
-            </label>
+          <FormSection title={editing ? `Fotos — ${files.length}/${MAX_PHOTOS} novas selecionadas` : `Fotos * — ${files.length}/${MAX_PHOTOS}`}>
+            {editing && editing.fotos.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--ink-4)", textTransform: "uppercase", margin: "0 0 8px" }}>
+                  Fotos atuais{files.length > 0 ? " — serão substituídas" : ""}
+                </p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {editing.fotos.map((url, i) => (
+                    <div key={i} style={{ width: 72, height: 72, borderRadius: "var(--radius-sm)", overflow: "hidden", opacity: files.length > 0 ? 0.35 : 1, transition: "opacity 200ms ease" }}>
+                      <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {previewUrls.map((url, i) => (
+                <div key={i} style={{ width: 100, height: 100, borderRadius: "var(--radius-md)", overflow: "hidden", position: "relative", flexShrink: 0 }}>
+                  <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <button
+                    type="button"
+                    onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                    style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.55)", border: "none", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, cursor: "pointer", lineHeight: 1 }}
+                  >
+                    ×
+                  </button>
+                  <div style={{ position: "absolute", bottom: 4, left: 6, fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>
+                    {i + 1}
+                  </div>
+                </div>
+              ))}
+
+              {files.length < MAX_PHOTOS && (
+                <label
+                  style={{ width: 100, height: 100, borderRadius: "var(--radius-md)", border: "2px dashed var(--border-strong)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", gap: 5, flexShrink: 0, transition: "border-color 140ms ease" }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--accent)")}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)")}
+                >
+                  <Upload size={18} style={{ color: "var(--accent)" }} />
+                  <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-4)" }}>Adicionar</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const picked = Array.from(e.target.files ?? []);
+                      setFiles((prev) => [...prev, ...picked].slice(0, MAX_PHOTOS));
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+
+              {Array.from({ length: Math.max(0, MAX_PHOTOS - files.length - (files.length < MAX_PHOTOS ? 1 : 0)) }).map((_, i) => (
+                <div key={i} style={{ width: 100, height: 100, borderRadius: "var(--radius-md)", border: "1.5px dashed var(--border)", background: "var(--canvas)", flexShrink: 0, opacity: 0.45 }} />
+              ))}
+            </div>
+
+            <p style={{ fontSize: 11, color: "var(--ink-4)", margin: "4px 0 0", fontWeight: 500 }}>
+              Máximo de {MAX_PHOTOS} fotos · a primeira será a capa do imóvel
+            </p>
           </FormSection>
 
-          {/* Amenities */}
           {amenities.length > 0 && (
             <FormSection title="Comodidades">
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -287,7 +334,6 @@ export default function HostListings() {
             </FormSection>
           )}
 
-          {/* Status */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
               <input
@@ -321,7 +367,6 @@ export default function HostListings() {
 
   return (
     <div style={{ padding: "28px 36px" }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.04em", margin: "0 0 4px" }}>
@@ -388,7 +433,6 @@ function ListingCard({
 }) {
   return (
     <div className="card card-hover" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      {/* Photo */}
       <div style={{ height: 160, background: "var(--canvas)", position: "relative", flexShrink: 0 }}>
         {p.fotos?.[0] ? (
           <img src={p.fotos[0]} alt={p.titulo} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -405,7 +449,6 @@ function ListingCard({
         </span>
       </div>
 
-      {/* Info */}
       <div style={{ padding: "14px 16px", flex: 1 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {p.titulo}
@@ -419,7 +462,6 @@ function ListingCard({
         </div>
       </div>
 
-      {/* Actions */}
       <div style={{ padding: "10px 16px 14px", display: "flex", gap: 8, borderTop: "1px solid var(--border)" }}>
         <button onClick={onView} className="btn btn-secondary btn-sm" style={{ flex: 1 }}>
           Detalhes

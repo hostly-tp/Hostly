@@ -9,8 +9,6 @@ import (
 	"sort"
 )
 
-// huffNode is a node in the Huffman tree. Leaves carry a symbol; internal
-// nodes carry only the combined frequency of their children.
 type huffNode struct {
 	sym   byte
 	freq  int
@@ -20,8 +18,6 @@ type huffNode struct {
 
 func (n *huffNode) isLeaf() bool { return n.left == nil && n.right == nil }
 
-// huffHeap is a min-heap ordered by frequency, with the symbol as a
-// deterministic tie-break so encode and decode build an identical tree.
 type huffHeap []*huffNode
 
 func (h huffHeap) Len() int { return len(h) }
@@ -41,8 +37,6 @@ func (h *huffHeap) Pop() any {
 	return node
 }
 
-// sortedSymbols returns the symbols of freq in ascending order so the tree is
-// built from a stable sequence on both encode and decode.
 func sortedSymbols(freq map[byte]int) []int {
 	syms := make([]int, 0, len(freq))
 	for s := range freq {
@@ -52,8 +46,6 @@ func sortedSymbols(freq map[byte]int) []int {
 	return syms
 }
 
-// buildTree builds the Huffman tree from a frequency table. A single distinct
-// symbol is wrapped so it still receives a 1-bit code.
 func buildTree(freq map[byte]int) *huffNode {
 	h := &huffHeap{}
 	heap.Init(h)
@@ -75,7 +67,6 @@ func buildTree(freq map[byte]int) *huffNode {
 	return heap.Pop(h).(*huffNode)
 }
 
-// buildCodes walks the tree assigning bit codes (left=0, right=1).
 func buildCodes(node *huffNode, prefix string, codes map[byte]string) {
 	if node == nil {
 		return
@@ -88,12 +79,6 @@ func buildCodes(node *huffNode, prefix string, codes map[byte]string) {
 	buildCodes(node.right, prefix+"1", codes)
 }
 
-// huffmanEncode compresses data. Output layout (big-endian):
-//
-//	[numSymbols uint16]
-//	[sym byte, freq uint32] × numSymbols   frequency table
-//	[paddingBits byte]                     trailing padding bits in last byte
-//	[bitstream...]
 func huffmanEncode(data []byte) ([]byte, error) {
 	freq := make(map[byte]int)
 	for _, b := range data {
@@ -148,7 +133,6 @@ func huffmanEncode(data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// huffmanDecode reverses huffmanEncode.
 func huffmanDecode(data []byte) ([]byte, error) {
 	r := bytes.NewReader(data)
 
@@ -172,7 +156,7 @@ func huffmanDecode(data []byte) ([]byte, error) {
 		total += int(f)
 	}
 
-	if _, err := r.ReadByte(); err != nil { // paddingBits
+	if _, err := r.ReadByte(); err != nil {
 		return nil, errors.New("huffman: padding ausente")
 	}
 

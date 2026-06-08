@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-// MatchBM reports whether pattern appears anywhere in text (case-insensitive) using Boyer-Moore.
 func MatchBM(text, pattern string) bool {
 	if pattern == "" {
 		return true
@@ -13,7 +12,6 @@ func MatchBM(text, pattern string) bool {
 	return len(SearchBM(strings.ToLower(text), strings.ToLower(pattern))) > 0
 }
 
-// MatchKMP reports whether pattern appears anywhere in text (case-insensitive) using KMP.
 func MatchKMP(text, pattern string) bool {
 	if pattern == "" {
 		return true
@@ -64,7 +62,6 @@ func (e *Engine) Search(pattern, entity string, records []SearchableRecord) Sear
 		return result
 	}
 
-	// Run BM over all records and time it.
 	startBM := time.Now()
 	bmPerRecord := make([][]Match, len(records))
 	for i, rec := range records {
@@ -82,7 +79,6 @@ func (e *Engine) Search(pattern, entity string, records []SearchableRecord) Sear
 	}
 	result.DurationBM = float64(time.Since(startBM).Nanoseconds()) / 1e6
 
-	// Run KMP over all records and time it.
 	startKMP := time.Now()
 	kmpPerRecord := make([][]Match, len(records))
 	for i, rec := range records {
@@ -100,7 +96,6 @@ func (e *Engine) Search(pattern, entity string, records []SearchableRecord) Sear
 	}
 	result.DurationKMP = float64(time.Since(startKMP).Nanoseconds()) / 1e6
 
-	// Build result list — only records with at least one match.
 	for i, rec := range records {
 		bm := bmPerRecord[i]
 		kmp := kmpPerRecord[i]
@@ -108,7 +103,6 @@ func (e *Engine) Search(pattern, entity string, records []SearchableRecord) Sear
 			continue
 		}
 
-		// Preview: original value of first field that produced a match.
 		preview := ""
 		for _, m := range bm {
 			if val, ok := rec.Fields[m.Field]; ok {

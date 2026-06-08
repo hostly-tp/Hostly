@@ -1,9 +1,3 @@
-// Package sorting implements external sorting (ordenacao externa) over arbitrary
-// entities. It is a classic two-phase external merge sort: a distribution phase
-// writes sorted runs to binary files on disk (keeping only runSize items in
-// memory), and a merge phase performs a k-way merge reading one record per run
-// at a time. Run files and the merged output are left on disk so the binary
-// intermediate files can be inspected.
 package sorting
 
 import (
@@ -63,9 +57,6 @@ func SortExternal[T any](e *Engine, name string, items []T, keyFn func(T) (float
 	return merge[T](e, name, runPaths, ascending, len(items))
 }
 
-// distribute is the first phase: split items into chunks of at most runSize,
-// sort each chunk in memory, and persist it as a sorted binary run file.
-// It is a free function because Go methods cannot carry type parameters.
 func distribute[T any](e *Engine, name string, items []T, keyFn func(T) (float64, int), ascending bool) ([]string, error) {
 	paths := make([]string, 0)
 
@@ -94,10 +85,6 @@ func distribute[T any](e *Engine, name string, items []T, keyFn func(T) (float64
 	return paths, nil
 }
 
-// merge is the second phase: a k-way merge over the sorted run files using a
-// heap that holds only the current head record of each run. Output is written
-// to <name>.sorted.bin and returned decoded. Free function for the same reason
-// as distribute.
 func merge[T any](e *Engine, name string, runPaths []string, ascending bool, total int) ([]T, error) {
 	outputPath := filepath.Join(e.dir, name+".sorted.bin")
 	outFile, err := os.OpenFile(outputPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
@@ -190,7 +177,6 @@ func (e *Engine) removeRunFiles(name string) error {
 	return nil
 }
 
-// writeRun serializes a sorted chunk: [count uint32] then each record.
 func writeRun(path string, records []record) error {
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
@@ -216,7 +202,6 @@ func writeRun(path string, records []record) error {
 	return file.Close()
 }
 
-// writeRecord emits [key float64][id int32][payloadLen uint32][payload].
 func writeRecord(w io.Writer, rec record) error {
 	var buf [16]byte
 	binary.LittleEndian.PutUint64(buf[0:8], math.Float64bits(rec.key))
@@ -229,7 +214,6 @@ func writeRecord(w io.Writer, rec record) error {
 	return err
 }
 
-// readRecord reads one record; ok is false at end of file.
 func readRecord(r io.Reader) (record, bool, error) {
 	var buf [16]byte
 	_, err := io.ReadFull(r, buf[:])
@@ -251,7 +235,6 @@ func readRecord(r io.Reader) (record, bool, error) {
 	return rec, true, nil
 }
 
-// heapItem couples a record with the run it was read from.
 type heapItem struct {
 	rec record
 	run int
@@ -262,10 +245,10 @@ type recordHeap struct {
 	ascending bool
 }
 
-func (h recordHeap) Len() int            { return len(h.items) }
-func (h recordHeap) Less(i, j int) bool  { return less(h.items[i].rec, h.items[j].rec, h.ascending) }
-func (h recordHeap) Swap(i, j int)       { h.items[i], h.items[j] = h.items[j], h.items[i] }
-func (h *recordHeap) Push(x any) { h.items = append(h.items, x.(heapItem)) }
+func (h recordHeap) Len() int           { return len(h.items) }
+func (h recordHeap) Less(i, j int) bool { return less(h.items[i].rec, h.items[j].rec, h.ascending) }
+func (h recordHeap) Swap(i, j int)      { h.items[i], h.items[j] = h.items[j], h.items[i] }
+func (h *recordHeap) Push(x any)        { h.items = append(h.items, x.(heapItem)) }
 func (h *recordHeap) Pop() any {
 	old := h.items
 	n := len(old)
@@ -274,7 +257,6 @@ func (h *recordHeap) Pop() any {
 	return item
 }
 
-// itoa avoids pulling strconv just for run-file naming.
 func itoa(n int) string {
 	if n == 0 {
 		return "0"

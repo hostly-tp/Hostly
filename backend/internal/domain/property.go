@@ -69,12 +69,13 @@ func (p Property) Validate() error {
 	if len(p.Photos) == 0 {
 		return fmt.Errorf("%w: foto obrigatoria", ErrInvalidEntity)
 	}
-	if len(p.Photos) > 1 {
-		return fmt.Errorf("%w: apenas uma foto e permitida", ErrInvalidEntity)
+	if len(p.Photos) > 5 {
+		return fmt.Errorf("%w: maximo de 5 fotos permitido", ErrInvalidEntity)
 	}
-
-	if !isValidPhotoURL(p.Photos[0]) {
-		return fmt.Errorf("%w: foto invalida", ErrInvalidEntity)
+	for _, photo := range p.Photos {
+		if !isValidPhotoURL(photo) {
+			return fmt.Errorf("%w: foto invalida", ErrInvalidEntity)
+		}
 	}
 
 	for _, amenity := range p.Amenities {

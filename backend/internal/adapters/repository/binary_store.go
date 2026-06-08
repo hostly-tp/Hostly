@@ -103,7 +103,6 @@ func (s *binaryEntityStore[T]) ensureFile() error {
 	return nil
 }
 
-// initializeIndex is used at startup (before the store is shared). Acquires the lock.
 func (s *binaryEntityStore[T]) initializeIndex() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -113,7 +112,6 @@ func (s *binaryEntityStore[T]) initializeIndex() error {
 	return s.rebuildIndexLocked()
 }
 
-// rebuildIndexLocked performs the actual rebuild. Must be called with s.mu already held.
 func (s *binaryEntityStore[T]) rebuildIndexLocked() error {
 	file, err := os.OpenFile(s.path, os.O_RDWR, 0o644)
 	if err != nil {
@@ -208,8 +206,6 @@ func (s *binaryEntityStore[T]) loadIndexFileLocked() error {
 	return nil
 }
 
-// syncPrimaryIndexLocked keeps in-memory and persisted index close to data-file state.
-// Any persistence failure is treated as recoverable because the index can always be rebuilt from .db.
 func (s *binaryEntityStore[T]) syncPrimaryIndexLocked() {
 	if err := s.persistIndexFile(); err == nil {
 		return

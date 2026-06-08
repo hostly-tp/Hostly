@@ -1,7 +1,6 @@
 package patternmatch
 
-// BuildBadChar returns the rightmost position of each byte in the pattern.
-func BuildBadChar(pattern string) map[byte]int {
+func buildBadChar(pattern string) map[byte]int {
 	table := make(map[byte]int)
 	for i := 0; i < len(pattern); i++ {
 		table[pattern[i]] = i
@@ -9,14 +8,13 @@ func BuildBadChar(pattern string) map[byte]int {
 	return table
 }
 
-// SearchBM returns start indices of all occurrences of pattern in text.
 func SearchBM(text, pattern string) []int {
 	n := len(text)
 	m := len(pattern)
 	if m == 0 {
 		return nil
 	}
-	badChar := BuildBadChar(pattern)
+	badChar := buildBadChar(pattern)
 	var result []int
 	i := 0
 	for i <= n-m {

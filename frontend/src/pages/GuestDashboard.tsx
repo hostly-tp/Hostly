@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Map, CalendarDays, ArrowRight } from "lucide-react";
-import { reservaService, type Reserva } from "../services/api";
+import { reservaService, imoveisService, type Reserva, type Imovel } from "../services/api";
 import { useStore } from "../app/store";
 
 function fmt(v: number) {
@@ -18,14 +18,19 @@ export default function GuestDashboard() {
   const { user } = useStore();
   const navigate = useNavigate();
   const [reservations, setReservations] = useState<Reserva[]>([]);
+  const [propMap, setPropMap] = useState<Record<number, Imovel>>({});
   const [loadingRes, setLoadingRes] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    reservaService
-      .getByHospede(user.idUsuario)
-      .then((r) => setReservations(r.slice(0, 3)))
-      .finally(() => setLoadingRes(false));
+    reservaService.getByHospede(user.idUsuario).then(async (res) => {
+      const sliced = res.slice(0, 3);
+      setReservations(sliced);
+      const ids = [...new Set(sliced.map((r) => r.idImovel))];
+      const map: Record<number, Imovel> = {};
+      await Promise.all(ids.map((id) => imoveisService.getById(id).then((p) => { map[id] = p; }).catch(() => {})));
+      setPropMap(map);
+    }).finally(() => setLoadingRes(false));
   }, [user]);
 
   const active = reservations.filter((r) => r.status === "CONFIRMADA");
@@ -33,7 +38,6 @@ export default function GuestDashboard() {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 960, margin: "0 auto" }}>
-      {/* Welcome */}
       <div style={{ marginBottom: 32 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.04em", margin: "0 0 6px" }}>
           Olá, {user?.nome.split(" ")[0]} 👋
@@ -43,7 +47,6 @@ export default function GuestDashboard() {
         </p>
       </div>
 
-      {/* Quick actions */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 32 }}>
         <QuickAction
           icon={<Map size={20} />}
@@ -60,14 +63,12 @@ export default function GuestDashboard() {
         />
       </div>
 
-      {/* Stats row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 32 }}>
         <StatCard label="Reservas ativas" value={active.length} color="var(--green)" />
         <StatCard label="Pendentes" value={pending.length} color="var(--amber)" />
         <StatCard label="Total de viagens" value={reservations.length} color="var(--accent)" />
       </div>
 
-      {/* Recent reservations */}
       <div style={{ marginBottom: 32 }}>
         <SectionHeader title="Reservas recentes" action="Ver todas" onAction={() => navigate("/reservations")} />
         {loadingRes ? (
@@ -103,8 +104,8 @@ export default function GuestDashboard() {
                     <CalendarDays size={18} style={{ color: "var(--accent)" }} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>
-                      Imóvel #{r.idImovel}
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {propMap[r.idImovel]?.titulo ?? "Imóvel #" + r.idImovel}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
                       {r.dataInicio} → {r.dataFim} · {fmt(r.valorTotal)}
@@ -118,7 +119,6 @@ export default function GuestDashboard() {
         )}
       </div>
 
-      {/* Become a host */}
       {user?.tipo === "HOSPEDE" && (
         <div
           style={{

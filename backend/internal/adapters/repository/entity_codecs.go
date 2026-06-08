@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"backend/internal/crypto"
 	"backend/internal/domain"
 	"bytes"
 	"encoding/binary"
@@ -263,7 +264,7 @@ func decodePropertyLegacy(payload []byte, id int) (domain.Property, error) {
 	var item domain.Property
 	item.ID = id
 
-	if _, err := readInt32(reader); err != nil { // skip legacy inline ID
+	if _, err := readInt32(reader); err != nil {
 		return domain.Property{}, err
 	}
 
@@ -324,7 +325,7 @@ func encodeUser(item domain.User) ([]byte, error) {
 
 	fields = append(fields, recordField{id: userFieldIDName, data: []byte(item.Name)})
 	fields = append(fields, recordField{id: userFieldIDEmail, data: []byte(item.Email)})
-	fields = append(fields, recordField{id: userFieldIDPassword, data: []byte(item.Password)})
+	fields = append(fields, recordField{id: userFieldIDPassword, data: []byte(crypto.Encrypt(item.Password, crypto.DefaultKey))})
 
 	var typeEnum uint8
 	switch item.Type {
@@ -375,7 +376,7 @@ func decodeUserFromStandard(fields map[uint8][]byte, id int) (domain.User, error
 	if err != nil {
 		return domain.User{}, err
 	}
-	item.Password = string(passwordData)
+	item.Password = crypto.Decrypt(string(passwordData), crypto.DefaultKey)
 
 	typeData, err := requiredField(fields, userFieldIDType)
 	if err != nil {
@@ -415,7 +416,7 @@ func decodeUserLegacy(payload []byte, id int) (domain.User, error) {
 	var item domain.User
 	item.ID = id
 
-	if _, err := readInt32(reader); err != nil { // skip legacy inline ID
+	if _, err := readInt32(reader); err != nil {
 		return domain.User{}, err
 	}
 
@@ -428,10 +429,11 @@ func decodeUserLegacy(payload []byte, id int) (domain.User, error) {
 	if err != nil {
 		return domain.User{}, err
 	}
-	item.Password, err = readString(reader)
+	rawPassword, err := readString(reader)
 	if err != nil {
 		return domain.User{}, err
 	}
+	item.Password = crypto.Decrypt(rawPassword, crypto.DefaultKey)
 	t, err := readString(reader)
 	if err != nil {
 		return domain.User{}, err
@@ -553,7 +555,7 @@ func decodeReservationLegacy(payload []byte, id int) (domain.Reservation, error)
 	var item domain.Reservation
 	item.ID = id
 
-	if _, err := readInt32(reader); err != nil { // skip legacy inline ID
+	if _, err := readInt32(reader); err != nil {
 		return domain.Reservation{}, err
 	}
 
@@ -678,7 +680,7 @@ func decodeStandardPayload(payload []byte, expectedEntityType uint8) (map[uint8]
 	}
 
 	reader := bytes.NewReader(payload)
-	reader.ReadByte() // consume version byte
+	reader.ReadByte()
 
 	entityType, err := reader.ReadByte()
 	if err != nil {

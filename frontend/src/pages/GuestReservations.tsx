@@ -2,6 +2,10 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, CalendarDays, X, AlertCircle, MapPin } from "lucide-react";
 import { reservaService, imoveisService, type Reserva, type Imovel } from "../services/api";
+
+function reservaCode(id: number): string {
+  return "RES-" + id.toString(36).toUpperCase().padStart(3, "0");
+}
 import { useStore } from "../app/store";
 
 function fmt(v: number) {
@@ -83,9 +87,7 @@ export default function GuestReservations() {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      {/* List */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* Header */}
         <div style={{ padding: "24px 28px 0", flexShrink: 0 }}>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.04em", margin: "0 0 4px" }}>
             Minhas Reservas
@@ -94,7 +96,6 @@ export default function GuestReservations() {
             {reservations.length} reserva{reservations.length !== 1 ? "s" : ""} no total
           </p>
 
-          {/* Filters */}
           <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
             <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
               <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--ink-4)", pointerEvents: "none" }} />
@@ -129,7 +130,6 @@ export default function GuestReservations() {
           </div>
         </div>
 
-        {/* Results */}
         <div style={{ flex: 1, overflowY: "auto", padding: "0 28px 28px" }}>
           {loading ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 12 }}>
@@ -202,7 +202,6 @@ export default function GuestReservations() {
         </div>
       </div>
 
-      {/* Detail drawer */}
       {selected && (
         <ReservationDetail
           reserva={selected}
@@ -252,10 +251,9 @@ function ReservationDetail({
         flexDirection: "column",
       }}
     >
-      {/* Header */}
       <div style={{ padding: "20px 20px 0", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-          Reserva #{r.idReserva}
+          {reservaCode(r.idReserva)}
         </h3>
         <button
           onClick={onClose}
@@ -266,7 +264,6 @@ function ReservationDetail({
       </div>
 
       <div style={{ padding: "16px 20px", flex: 1 }}>
-        {/* Property */}
         {p && (
           <div
             className="card"
@@ -286,7 +283,6 @@ function ReservationDetail({
           </div>
         )}
 
-        {/* Info */}
         <div className="card" style={{ padding: "14px 16px", marginBottom: 12 }}>
           <Row label="Status" value={<span className={`badge ${cls}`}>{label}</span>} />
           <Row label="Check-in" value={r.dataInicio} />
@@ -304,7 +300,6 @@ function ReservationDetail({
           />
         </div>
 
-        {/* Actions */}
         {r.status === "PENDENTE" && (
           <button
             onClick={onCancel}
