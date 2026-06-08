@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"backend/internal/crypto"
 	"backend/internal/domain"
 	"bytes"
 	"encoding/binary"
@@ -324,7 +325,7 @@ func encodeUser(item domain.User) ([]byte, error) {
 
 	fields = append(fields, recordField{id: userFieldIDName, data: []byte(item.Name)})
 	fields = append(fields, recordField{id: userFieldIDEmail, data: []byte(item.Email)})
-	fields = append(fields, recordField{id: userFieldIDPassword, data: []byte(item.Password)})
+	fields = append(fields, recordField{id: userFieldIDPassword, data: []byte(crypto.Encrypt(item.Password, crypto.DefaultKey))})
 
 	var typeEnum uint8
 	switch item.Type {
@@ -375,7 +376,7 @@ func decodeUserFromStandard(fields map[uint8][]byte, id int) (domain.User, error
 	if err != nil {
 		return domain.User{}, err
 	}
-	item.Password = string(passwordData)
+	item.Password = crypto.Decrypt(string(passwordData), crypto.DefaultKey)
 
 	typeData, err := requiredField(fields, userFieldIDType)
 	if err != nil {
@@ -428,10 +429,11 @@ func decodeUserLegacy(payload []byte, id int) (domain.User, error) {
 	if err != nil {
 		return domain.User{}, err
 	}
-	item.Password, err = readString(reader)
+	rawPassword, err := readString(reader)
 	if err != nil {
 		return domain.User{}, err
 	}
+	item.Password = crypto.Decrypt(rawPassword, crypto.DefaultKey)
 	t, err := readString(reader)
 	if err != nil {
 		return domain.User{}, err
