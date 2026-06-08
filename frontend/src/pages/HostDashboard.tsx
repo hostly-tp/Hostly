@@ -39,6 +39,8 @@ export default function HostDashboard() {
       .finally(() => setLoadingRes(false));
   }, [user]);
 
+  const listingMap = Object.fromEntries(listings.map((l) => [l.idImovel, l.titulo]));
+
   const revenue = reservations
     .filter((r) => r.status === "CONFIRMADA")
     .reduce((acc, r) => acc + r.valorTotal, 0);
@@ -205,8 +207,8 @@ export default function HostDashboard() {
                     style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>
-                        Imóvel #{r.idImovel}
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {listingMap[r.idImovel] ?? "Imóvel #" + r.idImovel}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--ink-3)" }}>
                         {r.dataInicio} → {r.dataFim}

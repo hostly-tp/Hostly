@@ -2,6 +2,10 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, CalendarDays, X, AlertCircle, MapPin } from "lucide-react";
 import { reservaService, imoveisService, type Reserva, type Imovel } from "../services/api";
+
+function reservaCode(id: number): string {
+  return "RES-" + id.toString(36).toUpperCase().padStart(3, "0");
+}
 import { useStore } from "../app/store";
 
 function fmt(v: number) {
@@ -255,7 +259,7 @@ function ReservationDetail({
       {/* Header */}
       <div style={{ padding: "20px 20px 0", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-          Reserva #{r.idReserva}
+          {reservaCode(r.idReserva)}
         </h3>
         <button
           onClick={onClose}

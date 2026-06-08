@@ -1,6 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { Search, CalendarDays, MapPin, X, Check, Clock, Ban } from "lucide-react";
-import { reservaService, imoveisService, type Reserva, type Imovel } from "../services/api";
+import { reservaService, imoveisService, usuarioService, type Reserva, type Imovel } from "../services/api";
+
+function reservaCode(id: number): string {
+  return "RES-" + id.toString(36).toUpperCase().padStart(3, "0");
+}
+function abbrevName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length <= 1 || name.length <= 18) return name;
+  return parts[0] + " " + parts.slice(1).map((p) => p[0] + ".").join(" ");
+}
 import { useStore } from "../app/store";
 
 function fmt(v: number) {
@@ -26,6 +35,7 @@ export default function HostReservations() {
   const [periodoDe, setPeriodoDe] = useState("");
   const [periodoAte, setPeriodoAte] = useState("");
   const [selected, setSelected] = useState<Reserva | null>(null);
+  const [hospedeMap, setHospedeMap] = useState<Record<number, string>>({});
   const [confirming, setConfirming] = useState<number | null>(null);
   const [cancelling, setCancelling] = useState<number | null>(null);
 
@@ -51,8 +61,12 @@ export default function HostReservations() {
 
       const ids = [...new Set(res.map((r) => r.idImovel))];
       const map: Record<number, Imovel> = {};
-      await Promise.all(ids.map((id) => imoveisService.getById(id).then((p) => { map[id] = p; }).catch(() => {})));
+      const [, users] = await Promise.all([
+        Promise.all(ids.map((id) => imoveisService.getById(id).then((p) => { map[id] = p; }).catch(() => {}))),
+        usuarioService.getAll(),
+      ]);
       setProperties(map);
+      setHospedeMap(Object.fromEntries(users.map((u) => [u.idUsuario, u.nome])));
     } finally {
       setLoading(false);
     }
@@ -158,7 +172,7 @@ export default function HostReservations() {
                         {prop?.titulo ?? `Imóvel #${r.idImovel}`}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 4 }}>
-                        Hóspede #{r.idHospede} · {r.dataInicio} → {r.dataFim}
+                        {abbrevName(hospedeMap[r.idHospede] ?? "Hóspede #" + r.idHospede)} · {r.dataInicio} → {r.dataFim}
                       </div>
                       {r.status === "PENDENTE" && (
                         <button onClick={(e) => { e.stopPropagation(); handleConfirm(r); }}
@@ -193,7 +207,7 @@ export default function HostReservations() {
           }}>
           <div style={{ padding: "20px 20px 0", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-              Reserva #{selected.idReserva}
+              {reservaCode(selected.idReserva)}
             </h3>
             <button onClick={() => setSelected(null)} style={{ background: "none", border: "none", color: "var(--ink-3)", display: "flex", padding: 4 }}>
               <X size={18} />
@@ -202,7 +216,7 @@ export default function HostReservations() {
           <div style={{ padding: "16px 20px", flex: 1 }}>
             <div className="card" style={{ padding: "14px 16px", marginBottom: 12 }}>
               {[
-                ["Hóspede", `#${selected.idHospede}`],
+                ["Hóspede", abbrevName(hospedeMap[selected.idHospede] ?? "#" + selected.idHospede)],
                 ["Imóvel", properties[selected.idImovel]?.titulo ?? `#${selected.idImovel}`],
                 ["Check-in", selected.dataInicio],
                 ["Check-out", selected.dataFim],
