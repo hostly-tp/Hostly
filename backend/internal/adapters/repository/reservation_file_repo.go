@@ -277,7 +277,7 @@ func reservationSortKeyFn(attr string) func(domain.Reservation) (float64, int) {
 		return func(r domain.Reservation) (float64, int) { return r.TotalValue, r.ID }
 	case "dataFim":
 		return func(r domain.Reservation) (float64, int) { return parseDate(r.EndDate), r.ID }
-	default: 
+	default:
 		return func(r domain.Reservation) (float64, int) { return parseDate(r.StartDate), r.ID }
 	}
 }

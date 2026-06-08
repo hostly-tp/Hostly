@@ -250,7 +250,6 @@ func (r *UserFileRepository) flushIndexes() error {
 	return r.byTerm.persistToFile()
 }
 
-
 func (r *UserFileRepository) syncIndexesLocked() {
 	if err := r.flushIndexes(); err == nil {
 		return

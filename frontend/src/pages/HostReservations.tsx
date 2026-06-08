@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Search, CalendarDays, MapPin, X, Check, Clock, Ban } from "lucide-react";
 import { reservaService, imoveisService, usuarioService, type Reserva, type Imovel } from "../services/api";
+import { useStore } from "../app/store";
 
 function reservaCode(id: number): string {
   return "RES-" + id.toString(36).toUpperCase().padStart(3, "0");
@@ -10,7 +11,6 @@ function abbrevName(name: string): string {
   if (parts.length <= 1 || name.length <= 18) return name;
   return parts[0] + " " + parts.slice(1).map((p) => p[0] + ".").join(" ");
 }
-import { useStore } from "../app/store";
 
 function fmt(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });

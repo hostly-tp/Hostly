@@ -34,7 +34,7 @@ type BackupInfo struct {
 	Arquivo   string `json:"arquivo"`
 	Algoritmo string `json:"algoritmo"`
 	Tamanho   int64  `json:"tamanho"`
-	CriadoEm string `json:"criadoEm"`
+	CriadoEm  string `json:"criadoEm"`
 }
 
 type RestoreResult struct {

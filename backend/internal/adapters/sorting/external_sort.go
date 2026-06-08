@@ -245,10 +245,10 @@ type recordHeap struct {
 	ascending bool
 }
 
-func (h recordHeap) Len() int            { return len(h.items) }
-func (h recordHeap) Less(i, j int) bool  { return less(h.items[i].rec, h.items[j].rec, h.ascending) }
-func (h recordHeap) Swap(i, j int)       { h.items[i], h.items[j] = h.items[j], h.items[i] }
-func (h *recordHeap) Push(x any) { h.items = append(h.items, x.(heapItem)) }
+func (h recordHeap) Len() int           { return len(h.items) }
+func (h recordHeap) Less(i, j int) bool { return less(h.items[i].rec, h.items[j].rec, h.ascending) }
+func (h recordHeap) Swap(i, j int)      { h.items[i], h.items[j] = h.items[j], h.items[i] }
+func (h *recordHeap) Push(x any)        { h.items = append(h.items, x.(heapItem)) }
 func (h *recordHeap) Pop() any {
 	old := h.items
 	n := len(old)
