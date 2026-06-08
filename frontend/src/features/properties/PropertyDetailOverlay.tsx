@@ -147,7 +147,7 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Gallery */}
+
       <div style={{ position: "relative", height: 340, background: "var(--surface-dim)", flexShrink: 0 }}>
         {currentPhoto ? (
           <img
@@ -170,7 +170,6 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
           </div>
         )}
 
-        {/* Overlay controls */}
         <button
           onClick={onClose}
           style={{
@@ -235,7 +234,6 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
               <ChevronRight size={16} style={{ color: "var(--ink)" }} />
             </button>
 
-            {/* Dots */}
             <div
               style={{
                 position: "absolute",
@@ -266,9 +264,7 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
         )}
       </div>
 
-      {/* Content */}
       <div style={{ display: "flex", gap: 0, overflow: "hidden" }}>
-        {/* Left — Property info */}
         <div
           style={{
             flex: 1,
@@ -276,7 +272,6 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
             padding: "28px 32px",
           }}
         >
-          {/* Header */}
           <div style={{ marginBottom: 20 }}>
             <h1
               style={{
@@ -303,7 +298,6 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
             </div>
           </div>
 
-          {/* Stats row */}
           <div
             style={{
               display: "flex",
@@ -318,7 +312,6 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
             <StatChip label="Status" value={p.ativo ? "Disponível" : "Indisponível"} />
           </div>
 
-          {/* Description */}
           {p.descricao && (
             <div style={{ marginBottom: 24 }}>
               <SectionLabel>Sobre o imóvel</SectionLabel>
@@ -328,7 +321,6 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
             </div>
           )}
 
-          {/* Amenities */}
           {p.comodidades.length > 0 && (
             <div style={{ marginBottom: 24 }}>
               <SectionLabel>Comodidades</SectionLabel>
@@ -357,7 +349,6 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
             </div>
           )}
 
-          {/* Address detail */}
           <div>
             <SectionLabel>Localização</SectionLabel>
             <div
@@ -380,7 +371,6 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
           </div>
         </div>
 
-        {/* Right — Booking widget */}
         <div
           style={{
             width: 280,
@@ -431,7 +421,6 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
             </div>
           ) : (
             <>
-              {/* Date inputs */}
               <div
                 style={{
                   border: "1.5px solid var(--border)",
@@ -485,7 +474,6 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
                 </div>
               </div>
 
-              {/* Payment method */}
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
                   Pagamento
@@ -517,7 +505,6 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
                 </div>
               </div>
 
-              {/* Price breakdown */}
               {nights > 0 && (
                 <div
                   style={{

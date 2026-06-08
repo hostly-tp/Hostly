@@ -74,7 +74,6 @@ export default function AppLayout() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--canvas)" }}>
-      {/* Sidebar */}
       <aside
         className="hostly-sidebar"
         style={{
@@ -91,7 +90,6 @@ export default function AppLayout() {
           zIndex: 50,
         }}
       >
-        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -129,7 +127,6 @@ export default function AppLayout() {
           )}
         </div>
 
-        {/* Nav */}
         <nav
           className="sidebar-scroll"
           style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 2 }}
@@ -176,7 +173,6 @@ export default function AppLayout() {
             );
           })}
 
-          {/* Become host CTA for guests */}
           {user.tipo === "HOSPEDE" && !sidebarCollapsed && (
             <div style={{ marginTop: "auto", paddingTop: 16 }}>
               <button
@@ -205,7 +201,6 @@ export default function AppLayout() {
           )}
         </nav>
 
-        {/* User + toggle */}
         <div
           style={{
             borderTop: "1px solid var(--border)",
@@ -317,7 +312,6 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      {/* Main content */}
       <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <Outlet />
       </main>

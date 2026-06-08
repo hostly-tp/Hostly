@@ -38,7 +38,6 @@ export default function GuestDashboard() {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 960, margin: "0 auto" }}>
-      {/* Welcome */}
       <div style={{ marginBottom: 32 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.04em", margin: "0 0 6px" }}>
           Olá, {user?.nome.split(" ")[0]} 👋
@@ -48,7 +47,6 @@ export default function GuestDashboard() {
         </p>
       </div>
 
-      {/* Quick actions */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 32 }}>
         <QuickAction
           icon={<Map size={20} />}
@@ -65,14 +63,12 @@ export default function GuestDashboard() {
         />
       </div>
 
-      {/* Stats row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 32 }}>
         <StatCard label="Reservas ativas" value={active.length} color="var(--green)" />
         <StatCard label="Pendentes" value={pending.length} color="var(--amber)" />
         <StatCard label="Total de viagens" value={reservations.length} color="var(--accent)" />
       </div>
 
-      {/* Recent reservations */}
       <div style={{ marginBottom: 32 }}>
         <SectionHeader title="Reservas recentes" action="Ver todas" onAction={() => navigate("/reservations")} />
         {loadingRes ? (
@@ -123,7 +119,6 @@ export default function GuestDashboard() {
         )}
       </div>
 
-      {/* Become a host */}
       {user?.tipo === "HOSPEDE" && (
         <div
           style={{

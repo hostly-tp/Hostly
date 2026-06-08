@@ -104,7 +104,6 @@ export default function HostReservations() {
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* Header */}
         <div style={{ padding: "24px 28px 0", flexShrink: 0 }}>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.04em", margin: "0 0 4px" }}>
             Reservas Recebidas
@@ -197,7 +196,6 @@ export default function HostReservations() {
         </div>
       </div>
 
-      {/* Detail */}
       {selected && (
         <div className="anim-slide-right"
           style={{

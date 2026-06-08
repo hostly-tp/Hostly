@@ -12,7 +12,6 @@ const (
 
 var errUnknownAlgo = errors.New("algoritmo desconhecido")
 
-// Engine selects between the Huffman and LZW implementations by algorithm name.
 type Engine struct{}
 
 func NewEngine() *Engine { return &Engine{} }
@@ -39,12 +38,10 @@ func runDecode(data []byte, algo string) ([]byte, error) {
 	}
 }
 
-// CompressRaw compresses data and returns raw bytes (no base64, no metadata).
 func (e *Engine) CompressRaw(data []byte, algo string) ([]byte, error) {
 	return runEncode(data, strings.ToLower(strings.TrimSpace(algo)))
 }
 
-// DecompressRaw decompresses raw bytes produced by CompressRaw.
 func (e *Engine) DecompressRaw(data []byte, algo string) ([]byte, error) {
 	return runDecode(data, strings.ToLower(strings.TrimSpace(algo)))
 }

@@ -6,15 +6,8 @@ import (
 	"errors"
 )
 
-// maxCodes is the dictionary ceiling: codes are uint16, so at most 65536
-// distinct entries (0..65535) can be represented. Both encode and decode stop
-// adding new entries at this point, keeping their dictionaries in sync.
 const maxCodes = 1 << 16
 
-// lzwEncode compresses data with LZW. Output layout (big-endian):
-//
-//	[count uint32]        number of 16-bit codes that follow
-//	[code uint16] × count
 func lzwEncode(data []byte) ([]byte, error) {
 	dict := make(map[string]uint16, 512)
 	for i := 0; i < 256; i++ {
@@ -53,7 +46,6 @@ func lzwEncode(data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// lzwDecode reverses lzwEncode.
 func lzwDecode(data []byte) ([]byte, error) {
 	r := bytes.NewReader(data)
 
@@ -93,7 +85,7 @@ func lzwDecode(data []byte) ([]byte, error) {
 		switch {
 		case int(code) < len(dict):
 			entry = dict[code]
-		case int(code) == len(dict): // KwKwK case: code not yet in dict
+		case int(code) == len(dict):
 			entry = append(append([]byte(nil), prev...), prev[0])
 		default:
 			return nil, errors.New("lzw: código fora de alcance")

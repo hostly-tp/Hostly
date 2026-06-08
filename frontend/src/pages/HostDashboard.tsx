@@ -50,7 +50,6 @@ export default function HostDashboard() {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 1000, margin: "0 auto" }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.04em", margin: "0 0 4px" }}>
@@ -68,7 +67,6 @@ export default function HostDashboard() {
         </button>
       </div>
 
-      {/* KPI row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
         <KpiCard
           icon={<Building2 size={20} />}
@@ -102,7 +100,6 @@ export default function HostDashboard() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20 }}>
-        {/* My listings */}
         <div>
           <SectionHeader
             title="Meus imóveis"
@@ -185,7 +182,6 @@ export default function HostDashboard() {
           )}
         </div>
 
-        {/* Recent reservations */}
         <div>
           <SectionHeader
             title="Reservas recentes"
@@ -230,7 +226,6 @@ export default function HostDashboard() {
         </div>
       </div>
 
-      {/* Revenue CTA */}
       <div
         style={{
           marginTop: 24,

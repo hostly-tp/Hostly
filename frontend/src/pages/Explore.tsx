@@ -18,7 +18,6 @@ export default function Explore() {
   const [searchInput, setSearchInput] = useState(filters.search);
   const { geo, loading: geoLoading } = useGeoProperties(properties);
 
-  // Debounce search input → store filter (triggers backend fetch)
   useEffect(() => {
     const t = setTimeout(() => setFilters({ search: searchInput }), 400);
     return () => clearTimeout(t);
@@ -58,7 +57,6 @@ export default function Explore() {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      {/* Left panel */}
       <div
         style={{
           width: 340,
@@ -71,7 +69,6 @@ export default function Explore() {
           background: "var(--surface)",
         }}
       >
-        {/* Search bar */}
         <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid var(--border)" }}>
           <div style={{ position: "relative", marginBottom: 10 }}>
             <Search
@@ -146,7 +143,6 @@ export default function Explore() {
           </button>
         </div>
 
-        {/* Filters panel */}
         {showFilters && (
           <div
             style={{
@@ -239,7 +235,6 @@ export default function Explore() {
           </div>
         )}
 
-        {/* Results count */}
         <div
           style={{
             padding: "10px 16px",
@@ -252,7 +247,6 @@ export default function Explore() {
           {geoLoading && " · Localizando no mapa..."}
         </div>
 
-        {/* Property list */}
         <div style={{ flex: 1, overflowY: "auto" }}>
           {properties.map((p) => (
             <PropertyListItem
@@ -277,7 +271,6 @@ export default function Explore() {
         </div>
       </div>
 
-      {/* Map */}
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         <MapView
           properties={geo}

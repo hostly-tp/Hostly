@@ -52,7 +52,6 @@ export default function HostRevenue() {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 900, margin: "0 auto" }}>
-      {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.04em", margin: "0 0 4px" }}>
           Receita
@@ -62,7 +61,6 @@ export default function HostRevenue() {
         </p>
       </div>
 
-      {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
         <KpiCard icon={<DollarSign size={20} />} label="Receita total" value={fmt(totalRevenue)} color="var(--green)" loading={loading} />
         <KpiCard icon={<CalendarDays size={20} />} label="Reservas confirmadas" value={totalConfirmed} color="var(--blue)" loading={loading} />
@@ -70,7 +68,6 @@ export default function HostRevenue() {
         <KpiCard icon={<Building2 size={20} />} label="Pendentes" value={totalPending} color="var(--amber)" loading={loading} />
       </div>
 
-      {/* Best property */}
       {!loading && best && best.revenue > 0 && (
         <div
           style={{
@@ -111,7 +108,6 @@ export default function HostRevenue() {
         </div>
       )}
 
-      {/* Per-property breakdown */}
       <div className="card" style={{ overflow: "hidden" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
           <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
@@ -158,7 +154,6 @@ export default function HostRevenue() {
                     <div style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 6 }}>
                       {item.confirmed} confirmada{item.confirmed !== 1 ? "s" : ""} · {item.reservations.length} total
                     </div>
-                    {/* Progress bar */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                       <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-4)", letterSpacing: "0.02em" }}>
                         Participação na receita total

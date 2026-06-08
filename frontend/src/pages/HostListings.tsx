@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Plus,
   Building2,
@@ -63,7 +63,6 @@ export default function HostListings() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [files, setFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
@@ -199,7 +198,6 @@ export default function HostListings() {
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {/* Basic info */}
           <FormSection title="Informações básicas">
             <FormField label="Título" required>
               <input className="field-input" placeholder="Ex: Apartamento moderno no centro" value={form.titulo} onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))} required minLength={4} />
@@ -212,7 +210,6 @@ export default function HostListings() {
             </FormField>
           </FormSection>
 
-          {/* Address */}
           <FormSection title="Endereço">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <FormField label="Cidade" required>
@@ -236,7 +233,6 @@ export default function HostListings() {
             </div>
           </FormSection>
 
-          {/* Photos */}
           <FormSection title={editing ? `Fotos — ${files.length}/${MAX_PHOTOS} novas selecionadas` : `Fotos * — ${files.length}/${MAX_PHOTOS}`}>
             {editing && editing.fotos.length > 0 && (
               <div style={{ marginBottom: 12 }}>
@@ -279,7 +275,6 @@ export default function HostListings() {
                   <Upload size={18} style={{ color: "var(--accent)" }} />
                   <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-4)" }}>Adicionar</span>
                   <input
-                    ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     multiple
@@ -303,7 +298,6 @@ export default function HostListings() {
             </p>
           </FormSection>
 
-          {/* Amenities */}
           {amenities.length > 0 && (
             <FormSection title="Comodidades">
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -340,7 +334,6 @@ export default function HostListings() {
             </FormSection>
           )}
 
-          {/* Status */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
               <input
@@ -374,7 +367,6 @@ export default function HostListings() {
 
   return (
     <div style={{ padding: "28px 36px" }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.04em", margin: "0 0 4px" }}>
@@ -441,7 +433,6 @@ function ListingCard({
 }) {
   return (
     <div className="card card-hover" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      {/* Photo */}
       <div style={{ height: 160, background: "var(--canvas)", position: "relative", flexShrink: 0 }}>
         {p.fotos?.[0] ? (
           <img src={p.fotos[0]} alt={p.titulo} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -458,7 +449,6 @@ function ListingCard({
         </span>
       </div>
 
-      {/* Info */}
       <div style={{ padding: "14px 16px", flex: 1 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {p.titulo}
@@ -472,7 +462,6 @@ function ListingCard({
         </div>
       </div>
 
-      {/* Actions */}
       <div style={{ padding: "10px 16px 14px", display: "flex", gap: 8, borderTop: "1px solid var(--border)" }}>
         <button onClick={onView} className="btn btn-secondary btn-sm" style={{ flex: 1 }}>
           Detalhes

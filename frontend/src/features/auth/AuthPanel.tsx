@@ -26,7 +26,6 @@ export default function AuthPanel() {
         margin: "0 auto",
       }}
     >
-      {/* Tabs */}
       <div
         style={{
           display: "flex",
@@ -250,7 +249,6 @@ function RegisterForm({
 
   return (
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Role selector */}
       <div
         style={{
           display: "grid",
@@ -334,7 +332,6 @@ function RegisterForm({
         </button>
       </div>
 
-      {/* Host property section */}
       {role === "anfitriao" && (
         <div
           style={{

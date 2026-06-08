@@ -103,9 +103,6 @@ func (h *PropertyHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// BM post-filter: apply Boyer-Moore substring matching on text fields when a
-	// text query is present. The token-index search is the fast first pass; BM
-	// ensures exact substring semantics on the candidate set.
 	if q := strings.TrimSpace(filter.Query); q != "" {
 		matched := filtered[:0]
 		for _, p := range filtered {
@@ -588,34 +585,38 @@ func extractUploadedPhotos(r *http.Request) ([]string, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("foto obrigatoria")
 	}
-
-	header := files[0]
-	file, err := header.Open()
-	if err != nil {
-		return nil, err
-	}
-	data, err := io.ReadAll(file)
-	file.Close()
-	if err != nil {
-		return nil, err
-	}
-	if len(data) == 0 {
-		return nil, fmt.Errorf("foto vazia")
+	if len(files) > 5 {
+		files = files[:5]
 	}
 
-	contentType := header.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = http.DetectContentType(data)
+	var photos []string
+	for _, header := range files {
+		file, err := header.Open()
+		if err != nil {
+			return nil, err
+		}
+		data, err := io.ReadAll(file)
+		file.Close()
+		if err != nil {
+			return nil, err
+		}
+		if len(data) == 0 {
+			return nil, fmt.Errorf("foto vazia")
+		}
+		contentType := header.Header.Get("Content-Type")
+		if contentType == "" {
+			contentType = http.DetectContentType(data)
+		}
+		if !strings.HasPrefix(contentType, "image/") {
+			return nil, fmt.Errorf("arquivo %s nao e imagem valida", header.Filename)
+		}
+		dataURL, err := saveRequestImage(data, contentType)
+		if err != nil {
+			return nil, err
+		}
+		photos = append(photos, dataURL)
 	}
-	if !strings.HasPrefix(contentType, "image/") {
-		return nil, fmt.Errorf("arquivo %s nao e imagem valida", header.Filename)
-	}
-
-	dataURL, err := saveRequestImage(data, contentType)
-	if err != nil {
-		return nil, err
-	}
-	return []string{dataURL}, nil
+	return photos, nil
 }
 
 func extractUploadedPhotosOptional(r *http.Request) (*[]string, error) {

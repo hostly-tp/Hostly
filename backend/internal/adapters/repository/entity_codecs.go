@@ -264,7 +264,7 @@ func decodePropertyLegacy(payload []byte, id int) (domain.Property, error) {
 	var item domain.Property
 	item.ID = id
 
-	if _, err := readInt32(reader); err != nil { // skip legacy inline ID
+	if _, err := readInt32(reader); err != nil {
 		return domain.Property{}, err
 	}
 
@@ -416,7 +416,7 @@ func decodeUserLegacy(payload []byte, id int) (domain.User, error) {
 	var item domain.User
 	item.ID = id
 
-	if _, err := readInt32(reader); err != nil { // skip legacy inline ID
+	if _, err := readInt32(reader); err != nil {
 		return domain.User{}, err
 	}
 
@@ -555,7 +555,7 @@ func decodeReservationLegacy(payload []byte, id int) (domain.Reservation, error)
 	var item domain.Reservation
 	item.ID = id
 
-	if _, err := readInt32(reader); err != nil { // skip legacy inline ID
+	if _, err := readInt32(reader); err != nil {
 		return domain.Reservation{}, err
 	}
 
@@ -680,7 +680,7 @@ func decodeStandardPayload(payload []byte, expectedEntityType uint8) (map[uint8]
 	}
 
 	reader := bytes.NewReader(payload)
-	reader.ReadByte() // consume version byte
+	reader.ReadByte()
 
 	entityType, err := reader.ReadByte()
 	if err != nil {

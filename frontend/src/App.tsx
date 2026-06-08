@@ -78,16 +78,13 @@ export default function App() {
   return (
     <>
       <Routes>
-        {/* Public */}
         <Route
           path="/"
           element={user ? <Navigate to="/go" replace /> : <Landing />}
         />
 
-        {/* Role redirect */}
         <Route path="/go" element={<RoleHome />} />
 
-        {/* Protected shell */}
         <Route
           element={
             <ProtectedRoute>
@@ -97,17 +94,14 @@ export default function App() {
         >
           <Route path="/explore" element={<Explore />} />
 
-          {/* Guest */}
           <Route path="/dashboard" element={<GuestDashboard />} />
           <Route path="/reservations" element={<GuestReservations />} />
 
-          {/* Host */}
           <Route path="/host" element={<HostDashboard />} />
           <Route path="/host/listings" element={<HostListings />} />
           <Route path="/host/revenue" element={<HostRevenue />} />
           <Route path="/host/reservations" element={<HostReservations />} />
 
-          {/* Admin */}
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/properties" element={<AdminProperties />} />
@@ -118,7 +112,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Global property detail overlay */}
       <PropertyDetailOverlay />
     </>
   );

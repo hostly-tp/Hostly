@@ -8,7 +8,6 @@ func buildBadChar(pattern string) map[byte]int {
 	return table
 }
 
-// SearchBM returns start indices of all occurrences of pattern in text.
 func SearchBM(text, pattern string) []int {
 	n := len(text)
 	m := len(pattern)

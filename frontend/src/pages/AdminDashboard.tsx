@@ -41,11 +41,10 @@ export default function AdminDashboard() {
     backupService.list().then((list) => {
       setBackupCount(list.length);
       if (list.length > 0) {
-        // Most recent backup is the last alphabetically (timestamp in filename)
         const sorted = [...list].sort((a, b) => b.arquivo.localeCompare(a.arquivo));
         setLatestBackup(sorted[0]);
       }
-    }).catch(() => {/* ignore */});
+    }).catch(() => { });
   }, []);
 
   const sections = [
@@ -85,7 +84,6 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 960, margin: "0 auto" }}>
-      {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
           <Activity size={20} style={{ color: "var(--accent)" }} />
@@ -98,7 +96,6 @@ export default function AdminDashboard() {
         </h1>
       </div>
 
-      {/* Platform KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 32 }}>
         <BigKpi
           label="Imóveis ativos"
@@ -121,7 +118,6 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Section cards */}
       <div>
         <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 14px" }}>
           Gerenciamento
@@ -183,7 +179,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Data integrity / backup status */}
       <div style={{ marginTop: 20 }}>
         <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 14px" }}>
           Integridade dos Dados
@@ -266,7 +261,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Explore shortcut */}
       <div
         style={{
           marginTop: 16,

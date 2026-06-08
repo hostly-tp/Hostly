@@ -134,7 +134,6 @@ export default function AdminUsers() {
           onSubmit={handleSubmit}
           style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-md)", overflow: "hidden" }}
         >
-          {/* Preview header — atualiza dinamicamente conforme digita */}
           <div style={{ padding: "20px 24px", background: "linear-gradient(130deg, var(--accent-tint) 0%, var(--surface) 65%)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{
               width: 52, height: 52, borderRadius: "50%",

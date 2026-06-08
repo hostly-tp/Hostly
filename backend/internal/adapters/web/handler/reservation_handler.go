@@ -70,7 +70,6 @@ func (h *ReservationHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// BM post-filter on status and date fields when a text query is present.
 	if q := filter.Query; q != "" {
 		var matched []domain.Reservation
 		for _, res := range filtered {
