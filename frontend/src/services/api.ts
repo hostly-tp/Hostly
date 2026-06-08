@@ -45,15 +45,6 @@ export type CreateComodidadeInput = {
 
 export type UpdateComodidadeInput = Partial<CreateComodidadeInput>;
 
-export interface Anfitriao {
-  idUsuario: number;
-  nome: string;
-  email: string;
-  telefone?: string;
-  tipo: "ANFITRIAO";
-  ativo: boolean;
-}
-
 export type UsuarioTipo = "ADMIN" | "ANFITRIAO" | "HOSPEDE";
 
 export interface Usuario {
@@ -317,26 +308,6 @@ export const imoveisService = {
   },
 };
 
-export const anfitriaoService = {
-  async getAll(): Promise<Anfitriao[]> {
-    return request<Anfitriao[]>("/usuarios/anfitrioes");
-  },
-  async create(data: Omit<Anfitriao, "idUsuario">): Promise<Anfitriao> {
-    return request<Anfitriao>("/usuarios", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
-  async update(id: number, data: Partial<Anfitriao>): Promise<Anfitriao> {
-    return request<Anfitriao>(`/usuarios/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-  },
-  async delete(id: number): Promise<void> {
-    return request<void>(`/usuarios/${id}`, { method: "DELETE" });
-  },
-};
 
 export const usuarioService = {
   async getAll(params?: { busca?: string }): Promise<Usuario[]> {

@@ -1,10 +1,8 @@
 package repository
 
 import (
-	"backend/internal/crypto"
 	"backend/internal/domain"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -252,20 +250,6 @@ func (r *UserFileRepository) flushIndexes() error {
 	return r.byTerm.persistToFile()
 }
 
-func (r *UserFileRepository) MigratePasswordKey(oldKey, newKey string) error {
-	crypto.DefaultKey = oldKey
-	users, err := r.store.GetAll()
-	if err != nil {
-		return err
-	}
-	crypto.DefaultKey = newKey
-	for _, u := range users {
-		if _, err := r.store.Update(u.ID, u); err != nil {
-			return fmt.Errorf("usuario %d: %w", u.ID, err)
-		}
-	}
-	return nil
-}
 
 func (r *UserFileRepository) syncIndexesLocked() {
 	if err := r.flushIndexes(); err == nil {
