@@ -424,8 +424,6 @@ Após o merge, `RewriteSorted` substitui o arquivo original pelo sorted com `os.
 
 ## Compressão de Dados e Backup
 
-### Filosofia
-
 A compressão é **infraestrutura de backup**. A cada 5 operações de escrita bem-sucedidas no sistema (POST/PUT/DELETE com 2xx), um backup comprimido de toda a base de dados é criado automaticamente em background, alternando entre Huffman e LZW. O administrador também pode acionar um backup manual a qualquer momento pelo painel.
 
 ### Huffman (`compression/huffman.go`)
@@ -498,8 +496,6 @@ POST /restaurar            → {"arquivo":"backup-....hbak"} — restaura todos 
 ---
 
 ## Casamento de Padrões
-
-### Filosofia
 
 O casamento de padrões não existe como uma aba exclusiva — ele é **infraestrutura transparente** que roda em todas as buscas textuais do sistema para qualquer tipo de usuário.
 
