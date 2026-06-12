@@ -128,7 +128,7 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
       await reservaService.confirm(reserva.idReserva, payMethod);
       setBooking("success");
     } catch (e) {
-      setBookingError(e instanceof Error ? e.message : "Erro ao reservar");
+      setBookingError(friendlyBookingError(e instanceof Error ? e.message : ""));
       setBooking("error");
     }
   };
@@ -373,8 +373,8 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
 
         <div
           style={{
-            width: 280,
-            minWidth: 280,
+            width: 320,
+            minWidth: 320,
             padding: "28px 24px",
             borderLeft: "1px solid var(--border)",
             display: "flex",
@@ -478,7 +478,7 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
                 <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
                   Pagamento
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                   {PAYMENT_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
@@ -496,6 +496,7 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
                         fontWeight: 600,
                         textAlign: "left",
                         transition: "all 120ms ease",
+                        gridColumn: opt.value === "DINHEIRO" ? "1 / -1" : undefined,
                       }}
                     >
                       {opt.icon}
@@ -575,6 +576,24 @@ function PropertyDetail({ id, onClose }: { id: number; onClose: () => void }) {
       </div>
     </div>
   );
+}
+
+function friendlyBookingError(raw: string): string {
+  const m = raw.toLowerCase();
+  if (m === "network_error" || m.includes("network_error") || m.includes("failed to fetch"))
+    return "Sem conexão com o servidor. Verifique sua internet e tente novamente.";
+  if (m.includes("400") || m.includes("invalid") || m.includes("inválid"))
+    return "Datas inválidas ou imóvel indisponível para o período selecionado.";
+  if (m.includes("401") || m.includes("403") || m.includes("unauthorized"))
+    return "Sessão expirada. Faça logout e entre novamente.";
+  if (m.includes("404"))
+    return "Imóvel não encontrado. Tente atualizar a página.";
+  if (m.includes("409") || m.includes("conflict") || m.includes("unavailable") || m.includes("reservad"))
+    return "Este imóvel já está reservado no período escolhido. Tente outras datas.";
+  if (m.includes("500") || m.includes("internal"))
+    return "Erro interno do servidor. Tente novamente em instantes.";
+  if (!raw) return "Não foi possível concluir a reserva. Tente novamente.";
+  return raw;
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {

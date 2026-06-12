@@ -13,7 +13,6 @@ import {
   Clock,
   Download,
   RotateCcw,
-  AlertTriangle,
 } from "lucide-react";
 import {
   dashboardService,
@@ -330,7 +329,7 @@ export default function AdminDashboard() {
                     title="Restaurar este backup"
                   >
                     {restoringFile === b.arquivo
-                      ? <><AlertTriangle size={11} /> Restaurando...</>
+                      ? <><RotateCcw size={11} className="anim-spin" /> Restaurando...</>
                       : <><RotateCcw size={11} /> Restaurar</>
                     }
                   </button>

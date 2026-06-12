@@ -88,7 +88,8 @@ function LoginForm({
       setUser(session.usuario);
       onSuccess(session.usuario);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao entrar");
+      const raw = err instanceof Error ? err.message : "Erro ao entrar";
+      setError(friendlyError(raw, "login"));
     } finally {
       setLoading(false);
     }
@@ -241,7 +242,8 @@ function RegisterForm({
       setUser(session.usuario);
       onSuccess(session.usuario);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao criar conta");
+      const raw = err instanceof Error ? err.message : "Erro ao criar conta";
+      setError(friendlyError(raw, "register"));
     } finally {
       setLoading(false);
     }
@@ -440,6 +442,31 @@ function FieldInput({
       />
     </div>
   );
+}
+
+function friendlyError(raw: string, ctx: "login" | "register"): string {
+  const m = raw.toLowerCase();
+  if (m === "network_error" || m.includes("network_error") || m.includes("failed to fetch"))
+    return "Não foi possível conectar ao servidor. Verifique se o backend está rodando.";
+  if (m.includes("401") || m.includes("invalid credential") || m.includes("unauthorized") || m.includes("senha") || m.includes("credenci"))
+    return ctx === "login"
+      ? "E-mail ou senha incorretos. Verifique os dados e tente novamente."
+      : "Credenciais inválidas.";
+  if (m.includes("404"))
+    return ctx === "login"
+      ? "Nenhuma conta encontrada com este e-mail."
+      : "Recurso não encontrado.";
+  if (m.includes("409") || m.includes("already") || m.includes("exist") || m.includes("já cadastr") || m.includes("duplicate"))
+    return "Este e-mail já está cadastrado. Tente fazer login.";
+  if (m.includes("400") || m.includes("invalid") || m.includes("inválid") || m.includes("required") || m.includes("obrigat"))
+    return "Dados inválidos. Verifique os campos e tente novamente.";
+  if (m.includes("500") || m.includes("internal server"))
+    return "Erro interno do servidor. Tente novamente em instantes.";
+  if (m.includes("503") || m.includes("unavailable"))
+    return "Serviço temporariamente indisponível. Tente novamente em breve.";
+  return raw.startsWith("Erro ") || raw.startsWith("Não ") || raw.startsWith("Este ")
+    ? raw
+    : "Ocorreu um erro inesperado. Tente novamente.";
 }
 
 function ErrorNote({ message }: { message: string }) {

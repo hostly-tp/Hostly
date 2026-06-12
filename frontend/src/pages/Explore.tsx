@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Search, SlidersHorizontal, X, MapPin, ChevronRight, Sparkles } from "lucide-react";
 import { imoveisService, comodidadeService, type Imovel, type ComodidadeCatalogo } from "../services/api";
 import { MapView, useGeoProperties, type GeoProperty } from "../features/map/MapView";
@@ -17,7 +17,7 @@ function fmt(v: number) {
 }
 
 export default function Explore() {
-  const { filters, setFilters, openDetail, setSelectedProperty } = useStore();
+  const { filters, setFilters, openDetail, setSelectedProperty, detailPropertyId } = useStore();
   const [properties, setProperties] = useState<Imovel[]>([]);
   const [amenities, setAmenities] = useState<ComodidadeCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +70,14 @@ export default function Explore() {
     setSelectedGeo(p);
     setSelectedProperty(p?.idImovel ?? null);
   };
+
+  const prevDetailId = useRef(detailPropertyId);
+  useEffect(() => {
+    if (prevDetailId.current !== null && detailPropertyId === null) {
+      handleSelect(null);
+    }
+    prevDetailId.current = detailPropertyId;
+  }, [detailPropertyId]);
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -312,20 +320,50 @@ export default function Explore() {
           </div>
         )}
 
+        {(sortIdx !== null || filters.amenityIds.length > 0 || filters.priceMin > 0 || filters.priceMax < 5000) && (
+          <div style={{ padding: "8px 16px", borderBottom: "1px solid var(--border)", display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {sortIdx !== null && (
+              <ActiveChip label={SORT_OPTIONS[sortIdx].label} onRemove={() => setSortIdx(null)} />
+            )}
+            {(filters.priceMin > 0 || filters.priceMax < 5000) && (
+              <ActiveChip
+                label={`${filters.priceMin > 0 ? fmt(filters.priceMin) : "0"} – ${filters.priceMax < 5000 ? fmt(filters.priceMax) : "Máx"}`}
+                onRemove={() => setFilters({ priceMin: 0, priceMax: 5000 })}
+              />
+            )}
+            {filters.amenityIds.map((id) => {
+              const a = amenities.find((x) => x.idComodidade === id);
+              return a ? (
+                <ActiveChip
+                  key={id}
+                  label={a.nome}
+                  onRemove={() => setFilters({ amenityIds: filters.amenityIds.filter((x) => x !== id) })}
+                />
+              ) : null;
+            })}
+          </div>
+        )}
+
         <div style={{ padding: "8px 16px", fontSize: 12, color: "var(--ink-3)", borderBottom: "1px solid var(--border)" }}>
           {loading ? "Carregando..." : `${properties.length} imóvel(is) encontrado(s)`}
           {geoLoading && " · Localizando..."}
         </div>
 
         <div style={{ flex: 1, overflowY: "auto" }}>
-          {properties.map((p) => (
-            <PropertyListItem
-              key={p.idImovel}
-              property={p}
-              selected={selectedGeo?.idImovel === p.idImovel}
-              onSelect={() => openDetail(p.idImovel)}
-            />
-          ))}
+          {loading
+            ? Array.from({ length: 6 }, (_, i) => <SkeletonItem key={i} />)
+            : properties.map((p) => (
+                <PropertyListItem
+                  key={p.idImovel}
+                  property={p}
+                  selected={selectedGeo?.idImovel === p.idImovel}
+                  onSelect={() => {
+                    handleSelect(geo.find((g) => g.idImovel === p.idImovel) ?? null);
+                    openDetail(p.idImovel);
+                  }}
+                />
+              ))
+          }
           {!loading && properties.length === 0 && (
             <div style={{ padding: 32, textAlign: "center", color: "var(--ink-4)", fontSize: 13 }}>
               Nenhum imóvel encontrado.
@@ -352,8 +390,8 @@ export default function Explore() {
         {selectedGeo && (
           <PropertyPreviewCard
             property={selectedGeo}
-            onView={() => openDetail(selectedGeo.idImovel)}
-            onClose={() => setSelectedGeo(null)}
+            onView={() => { handleSelect(null); openDetail(selectedGeo.idImovel); }}
+            onClose={() => handleSelect(null)}
           />
         )}
       </div>
@@ -432,6 +470,46 @@ function PropertyListItem({
       </div>
       <ChevronRight size={16} style={{ color: "var(--ink-5)", flexShrink: 0, alignSelf: "center" }} />
     </div>
+  );
+}
+
+function SkeletonItem() {
+  return (
+    <div style={{ display: "flex", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
+      <div className="skeleton" style={{ width: 72, height: 72, borderRadius: "var(--radius-md)", flexShrink: 0 }} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, justifyContent: "center" }}>
+        <div className="skeleton" style={{ height: 13, width: "70%", borderRadius: 6 }} />
+        <div className="skeleton" style={{ height: 11, width: "45%", borderRadius: 6 }} />
+        <div className="skeleton" style={{ height: 13, width: "30%", borderRadius: 6 }} />
+      </div>
+    </div>
+  );
+}
+
+function ActiveChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "3px 8px 3px 10px",
+        borderRadius: "99px",
+        background: "var(--accent-tint)",
+        border: "1px solid var(--accent)",
+        color: "var(--accent)",
+        fontSize: 11,
+        fontWeight: 600,
+      }}
+    >
+      {label}
+      <button
+        onClick={onRemove}
+        style={{ background: "none", border: "none", padding: 0, display: "flex", color: "inherit", lineHeight: 1 }}
+      >
+        <X size={10} />
+      </button>
+    </span>
   );
 }
 
