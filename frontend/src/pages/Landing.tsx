@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Shield, Zap, Star } from "lucide-react";
+import { MapPin, Shield, Zap, Star, Lock } from "lucide-react";
 import AuthPanel from "../features/auth/AuthPanel";
 import { imoveisService, type Imovel } from "../services/api";
 import { geocodeAddressInput } from "../services/geocoding";
@@ -158,17 +158,7 @@ export default function Landing() {
               eventHandlers={{
                 click: () => setSelected(selected?.idImovel === p.idImovel ? null : p),
               }}
-            >
-              {selected?.idImovel === p.idImovel && (
-                <Popup
-                  position={[p.lat, p.lng]}
-                  closeButton
-                  eventHandlers={{ remove: () => setSelected(null) }}
-                >
-                  <LandingPopup property={p} />
-                </Popup>
-              )}
-            </Marker>
+            />
           ))}
         </MapContainer>
 
@@ -194,6 +184,13 @@ export default function Landing() {
           <MapPin size={13} style={{ color: "var(--accent)" }} />
           Explore sem precisar entrar
         </div>
+
+        {selected && (
+          <LandingPreviewCard
+            property={selected}
+            onClose={() => setSelected(null)}
+          />
+        )}
       </div>
     </div>
   );
@@ -209,39 +206,86 @@ function ZoomControlPosition() {
   return null;
 }
 
-function LandingPopup({ property: p }: { property: GeoProperty }) {
+function LandingPreviewCard({ property: p, onClose }: { property: GeoProperty; onClose: () => void }) {
   const photo = p.fotos?.[0];
   return (
-    <div style={{ width: 220, fontFamily: "Sora, sans-serif" }}>
+    <div
+      className="anim-fade-up"
+      style={{
+        position: "absolute",
+        bottom: 24,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 1000,
+        width: 300,
+        background: "var(--surface)",
+        borderRadius: "var(--radius-xl)",
+        boxShadow: "var(--shadow-xl)",
+        overflow: "hidden",
+      }}
+    >
       {photo && (
-        <img
-          src={photo}
-          alt={p.titulo}
-          style={{ width: "100%", height: 110, objectFit: "cover", borderRadius: 8, marginBottom: 10, display: "block" }}
-        />
+        <div style={{ height: 130, overflow: "hidden" }}>
+          <img src={photo} alt={p.titulo} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </div>
       )}
-      <div style={{ fontSize: 13, fontWeight: 700, color: "#0C0C11", marginBottom: 3, lineHeight: 1.3 }}>
-        {p.titulo}
+
+      <div style={{ padding: "14px 16px 16px" }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 3, lineHeight: 1.3 }}>
+          {p.titulo}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 12, display: "flex", alignItems: "center", gap: 4 }}>
+          <MapPin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
+          {p.cidade}
+        </div>
+
+        <div style={{ position: "relative", marginBottom: 12, height: 22 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "var(--accent)", filter: "blur(6px)", userSelect: "none", whiteSpace: "nowrap" }}>
+            {formatCurrency(p.valorDiaria)}<span style={{ fontSize: 11, fontWeight: 400, color: "var(--ink-3)" }}>/noite</span>
+          </div>
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--ink-3)", fontWeight: 500 }}>
+            <Lock size={11} style={{ flexShrink: 0, color: "var(--ink-4)" }} />
+            Faça login para ver o preço
+          </div>
+        </div>
+
+        {p.comodidades.length > 0 && (
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14, filter: "blur(4px)", userSelect: "none" }}>
+            {p.comodidades.slice(0, 3).map((c, i) => (
+              <span key={i} style={{ padding: "3px 8px", borderRadius: 99, background: "var(--canvas)", border: "1px solid var(--border)", fontSize: 11, color: "var(--ink-3)" }}>
+                {c.nome}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div style={{ padding: "9px 0", textAlign: "center", background: "var(--accent)", color: "#fff", borderRadius: "var(--radius-md)", fontSize: 12, fontWeight: 600 }}>
+          Entre para reservar →
+        </div>
       </div>
-      <div style={{ fontSize: 12, color: "#6E6E82", marginBottom: 8 }}>{p.cidade}</div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: "#C85C32" }}>
-        {formatCurrency(p.valorDiaria)}
-        <span style={{ fontSize: 11, fontWeight: 400, color: "#6E6E82" }}>/noite</span>
-      </div>
-      <div
+
+      <button
+        onClick={onClose}
         style={{
-          marginTop: 10,
-          padding: "7px 0",
-          textAlign: "center",
-          background: "#C85C32",
-          color: "#fff",
-          borderRadius: 8,
-          fontSize: 12,
-          fontWeight: 600,
+          position: "absolute",
+          top: 10,
+          right: 10,
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.9)",
+          border: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "var(--shadow-sm)",
+          fontSize: 16,
+          color: "var(--ink)",
+          lineHeight: 1,
         }}
       >
-        Entre para reservar →
-      </div>
+        ×
+      </button>
     </div>
   );
 }

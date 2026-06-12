@@ -22,6 +22,12 @@ type NavItem = {
   icon: React.ReactNode;
 };
 
+const TIPO_LABEL: Record<string, string> = {
+  HOSPEDE: "Hóspede",
+  ANFITRIAO: "Anfitrião",
+  ADMIN: "Admin",
+};
+
 function getNav(tipo: string): NavItem[] {
   if (tipo === "ADMIN") {
     return [
@@ -302,7 +308,7 @@ export default function AppLayout() {
                     {user.nome}
                   </div>
                   <div style={{ fontSize: 10, color: "var(--ink-3)" }}>
-                    {user.tipo}
+                    {TIPO_LABEL[user.tipo] ?? user.tipo}
                   </div>
                 </div>
                 <LogOut size={14} style={{ flexShrink: 0 }} />

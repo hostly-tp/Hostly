@@ -120,14 +120,20 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem(TOKEN_KEY);
   const isFormData = options?.body instanceof FormData;
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options?.headers ?? {}),
-    },
-    ...options,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      headers: {
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options?.headers ?? {}),
+      },
+      ...options,
+    });
+  } catch {
+    throw new Error("NETWORK_ERROR");
+  }
+
   if (!res.ok) {
     const errorText = await res.text();
     let message = res.statusText;
@@ -143,7 +149,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       }
     }
 
-    throw new Error(`Erro ${res.status}: ${message}`);
+    throw new Error(`${res.status}:${message}`);
   }
 
   if (res.status === 204) {

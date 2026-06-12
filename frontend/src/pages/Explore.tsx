@@ -1,21 +1,31 @@
-import { useEffect, useState, useCallback } from "react";
-import { Search, SlidersHorizontal, X, MapPin, ChevronRight } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { Search, SlidersHorizontal, X, MapPin, ChevronRight, Sparkles } from "lucide-react";
 import { imoveisService, comodidadeService, type Imovel, type ComodidadeCatalogo } from "../services/api";
 import { MapView, useGeoProperties, type GeoProperty } from "../features/map/MapView";
 import { useStore } from "../app/store";
+
+type SortOption = { label: string; ordenarPor: "valorDiaria" | "dataCadastro"; ordem: "asc" | "desc" };
+const SORT_OPTIONS: SortOption[] = [
+  { label: "Menor preço", ordenarPor: "valorDiaria", ordem: "asc" },
+  { label: "Maior preço", ordenarPor: "valorDiaria", ordem: "desc" },
+  { label: "Mais recentes", ordenarPor: "dataCadastro", ordem: "desc" },
+  { label: "Mais antigos", ordenarPor: "dataCadastro", ordem: "asc" },
+];
 
 function fmt(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
 export default function Explore() {
-  const { filters, setFilters, openDetail, setSelectedProperty } = useStore();
+  const { filters, setFilters, openDetail, setSelectedProperty, detailPropertyId } = useStore();
   const [properties, setProperties] = useState<Imovel[]>([]);
   const [amenities, setAmenities] = useState<ComodidadeCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [showAmenities, setShowAmenities] = useState(false);
   const [selectedGeo, setSelectedGeo] = useState<GeoProperty | null>(null);
   const [searchInput, setSearchInput] = useState(filters.search);
+  const [sortIdx, setSortIdx] = useState<number | null>(null);
   const { geo, loading: geoLoading } = useGeoProperties(properties);
 
   useEffect(() => {
@@ -33,12 +43,16 @@ export default function Explore() {
       if (filters.priceMin > 0) params.valorDiariaMin = filters.priceMin;
       if (filters.priceMax < 5000) params.valorDiariaMax = filters.priceMax;
       if (filters.amenityIds.length > 0) params.comodidades = filters.amenityIds;
+      if (sortIdx !== null) {
+        params.ordenarPor = SORT_OPTIONS[sortIdx].ordenarPor;
+        params.ordem = SORT_OPTIONS[sortIdx].ordem;
+      }
       const data = await imoveisService.getAll(params);
       setProperties(data);
     } finally {
       setLoading(false);
     }
-  }, [filters.search, filters.priceMin, filters.priceMax, amenityIdsKey]);
+  }, [filters.search, filters.priceMin, filters.priceMax, amenityIdsKey, sortIdx]);
 
   useEffect(() => {
     fetchProperties();
@@ -48,12 +62,22 @@ export default function Explore() {
   const clearFilters = () => {
     setFilters({ priceMin: 0, priceMax: 5000, amenityIds: [], search: "" });
     setSearchInput("");
+    setSortIdx(null);
+    setShowAmenities(false);
   };
 
   const handleSelect = (p: GeoProperty | null) => {
     setSelectedGeo(p);
     setSelectedProperty(p?.idImovel ?? null);
   };
+
+  const prevDetailId = useRef(detailPropertyId);
+  useEffect(() => {
+    if (prevDetailId.current !== null && detailPropertyId === null) {
+      handleSelect(null);
+    }
+    prevDetailId.current = detailPropertyId;
+  }, [detailPropertyId]);
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -126,7 +150,7 @@ export default function Explore() {
           >
             <SlidersHorizontal size={13} />
             Filtros
-            {(filters.amenityIds.length > 0 || filters.priceMin > 0 || filters.priceMax < 5000) && (
+            {(sortIdx !== null || filters.amenityIds.length > 0 || filters.priceMin > 0 || filters.priceMax < 5000) && (
               <span
                 style={{
                   background: "var(--accent)",
@@ -137,7 +161,7 @@ export default function Explore() {
                   fontWeight: 700,
                 }}
               >
-                {filters.amenityIds.length + (filters.priceMin > 0 || filters.priceMax < 5000 ? 1 : 0)}
+                {(sortIdx !== null ? 1 : 0) + filters.amenityIds.length + (filters.priceMin > 0 || filters.priceMax < 5000 ? 1 : 0)}
               </span>
             )}
           </button>
@@ -154,6 +178,35 @@ export default function Explore() {
               gap: 14,
             }}
           >
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>
+                Ordenar por
+              </label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {SORT_OPTIONS.map((o, i) => {
+                  const active = sortIdx === i;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setSortIdx(active ? null : i)}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: "99px",
+                        border: `1.5px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                        background: active ? "var(--accent-tint)" : "var(--surface)",
+                        color: active ? "var(--accent)" : "var(--ink-3)",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        transition: "all 120ms ease",
+                      }}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>
                 Preço/noite
@@ -181,40 +234,72 @@ export default function Explore() {
               </div>
             </div>
 
-            {amenities.length > 0 && (
+            {amenities.filter((a) => a.ativo).length > 0 && (
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>
+                <button
+                  onClick={() => setShowAmenities((v) => !v)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "5px 12px",
+                    borderRadius: "99px",
+                    border: `1.5px solid ${filters.amenityIds.length > 0 ? "var(--accent)" : "var(--border)"}`,
+                    background: filters.amenityIds.length > 0 ? "var(--accent-tint)" : "var(--surface)",
+                    color: filters.amenityIds.length > 0 ? "var(--accent)" : "var(--ink-3)",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    transition: "all 120ms ease",
+                  }}
+                >
+                  <Sparkles size={12} />
                   Comodidades
-                </label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {amenities.filter((a) => a.ativo).slice(0, 12).map((a) => {
-                    const active = filters.amenityIds.includes(a.idComodidade);
-                    return (
-                      <button
-                        key={a.idComodidade}
-                        onClick={() =>
-                          setFilters({
-                            amenityIds: active
-                              ? filters.amenityIds.filter((id) => id !== a.idComodidade)
-                              : [...filters.amenityIds, a.idComodidade],
-                          })
-                        }
-                        style={{
-                          padding: "5px 10px",
-                          borderRadius: "99px",
-                          border: `1.5px solid ${active ? "var(--accent)" : "var(--border)"}`,
-                          background: active ? "var(--accent-tint)" : "var(--surface)",
-                          color: active ? "var(--accent)" : "var(--ink-3)",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          transition: "all 120ms ease",
-                        }}
-                      >
-                        {a.nome}
-                      </button>
-                    );
-                  })}
-                </div>
+                  {filters.amenityIds.length > 0 && (
+                    <span style={{
+                      background: "var(--accent)",
+                      color: "#fff",
+                      borderRadius: "99px",
+                      fontSize: 9,
+                      padding: "1px 5px",
+                      fontWeight: 700,
+                    }}>
+                      {filters.amenityIds.length}
+                    </span>
+                  )}
+                  <span style={{ fontSize: 10, opacity: 0.6 }}>{showAmenities ? "▲" : "▼"}</span>
+                </button>
+
+                {showAmenities && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                    {amenities.filter((a) => a.ativo).map((a) => {
+                      const active = filters.amenityIds.includes(a.idComodidade);
+                      return (
+                        <button
+                          key={a.idComodidade}
+                          onClick={() =>
+                            setFilters({
+                              amenityIds: active
+                                ? filters.amenityIds.filter((id) => id !== a.idComodidade)
+                                : [...filters.amenityIds, a.idComodidade],
+                            })
+                          }
+                          style={{
+                            padding: "5px 10px",
+                            borderRadius: "99px",
+                            border: `1.5px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                            background: active ? "var(--accent-tint)" : "var(--surface)",
+                            color: active ? "var(--accent)" : "var(--ink-3)",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            transition: "all 120ms ease",
+                          }}
+                        >
+                          {a.nome}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -235,27 +320,50 @@ export default function Explore() {
           </div>
         )}
 
-        <div
-          style={{
-            padding: "10px 16px",
-            fontSize: 12,
-            color: "var(--ink-3)",
-            borderBottom: "1px solid var(--border)",
-          }}
-        >
+        {(sortIdx !== null || filters.amenityIds.length > 0 || filters.priceMin > 0 || filters.priceMax < 5000) && (
+          <div style={{ padding: "8px 16px", borderBottom: "1px solid var(--border)", display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {sortIdx !== null && (
+              <ActiveChip label={SORT_OPTIONS[sortIdx].label} onRemove={() => setSortIdx(null)} />
+            )}
+            {(filters.priceMin > 0 || filters.priceMax < 5000) && (
+              <ActiveChip
+                label={`${filters.priceMin > 0 ? fmt(filters.priceMin) : "0"} – ${filters.priceMax < 5000 ? fmt(filters.priceMax) : "Máx"}`}
+                onRemove={() => setFilters({ priceMin: 0, priceMax: 5000 })}
+              />
+            )}
+            {filters.amenityIds.map((id) => {
+              const a = amenities.find((x) => x.idComodidade === id);
+              return a ? (
+                <ActiveChip
+                  key={id}
+                  label={a.nome}
+                  onRemove={() => setFilters({ amenityIds: filters.amenityIds.filter((x) => x !== id) })}
+                />
+              ) : null;
+            })}
+          </div>
+        )}
+
+        <div style={{ padding: "8px 16px", fontSize: 12, color: "var(--ink-3)", borderBottom: "1px solid var(--border)" }}>
           {loading ? "Carregando..." : `${properties.length} imóvel(is) encontrado(s)`}
-          {geoLoading && " · Localizando no mapa..."}
+          {geoLoading && " · Localizando..."}
         </div>
 
         <div style={{ flex: 1, overflowY: "auto" }}>
-          {properties.map((p) => (
-            <PropertyListItem
-              key={p.idImovel}
-              property={p}
-              selected={selectedGeo?.idImovel === p.idImovel}
-              onSelect={() => openDetail(p.idImovel)}
-            />
-          ))}
+          {loading
+            ? Array.from({ length: 6 }, (_, i) => <SkeletonItem key={i} />)
+            : properties.map((p) => (
+                <PropertyListItem
+                  key={p.idImovel}
+                  property={p}
+                  selected={selectedGeo?.idImovel === p.idImovel}
+                  onSelect={() => {
+                    handleSelect(geo.find((g) => g.idImovel === p.idImovel) ?? null);
+                    openDetail(p.idImovel);
+                  }}
+                />
+              ))
+          }
           {!loading && properties.length === 0 && (
             <div style={{ padding: 32, textAlign: "center", color: "var(--ink-4)", fontSize: 13 }}>
               Nenhum imóvel encontrado.
@@ -282,8 +390,8 @@ export default function Explore() {
         {selectedGeo && (
           <PropertyPreviewCard
             property={selectedGeo}
-            onView={() => openDetail(selectedGeo.idImovel)}
-            onClose={() => setSelectedGeo(null)}
+            onView={() => { handleSelect(null); openDetail(selectedGeo.idImovel); }}
+            onClose={() => handleSelect(null)}
           />
         )}
       </div>
@@ -362,6 +470,46 @@ function PropertyListItem({
       </div>
       <ChevronRight size={16} style={{ color: "var(--ink-5)", flexShrink: 0, alignSelf: "center" }} />
     </div>
+  );
+}
+
+function SkeletonItem() {
+  return (
+    <div style={{ display: "flex", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
+      <div className="skeleton" style={{ width: 72, height: 72, borderRadius: "var(--radius-md)", flexShrink: 0 }} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, justifyContent: "center" }}>
+        <div className="skeleton" style={{ height: 13, width: "70%", borderRadius: 6 }} />
+        <div className="skeleton" style={{ height: 11, width: "45%", borderRadius: 6 }} />
+        <div className="skeleton" style={{ height: 13, width: "30%", borderRadius: 6 }} />
+      </div>
+    </div>
+  );
+}
+
+function ActiveChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "3px 8px 3px 10px",
+        borderRadius: "99px",
+        background: "var(--accent-tint)",
+        border: "1px solid var(--accent)",
+        color: "var(--accent)",
+        fontSize: 11,
+        fontWeight: 600,
+      }}
+    >
+      {label}
+      <button
+        onClick={onRemove}
+        style={{ background: "none", border: "none", padding: 0, display: "flex", color: "inherit", lineHeight: 1 }}
+      >
+        <X size={10} />
+      </button>
+    </span>
   );
 }
 

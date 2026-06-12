@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Clock,
   Download,
+  RotateCcw,
 } from "lucide-react";
 import {
   dashboardService,
@@ -35,17 +36,15 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [latestBackup, setLatestBackup] = useState<BackupInfo | null>(null);
-  const [backupCount, setBackupCount] = useState(0);
+  const [backups, setBackups] = useState<BackupInfo[]>([]);
   const [creatingBackup, setCreatingBackup] = useState<AlgoritmoCompressao | null>(null);
+  const [restoringFile, setRestoringFile] = useState<string | null>(null);
+  const [restoreSuccess, setRestoreSuccess] = useState<string | null>(null);
 
   const refreshBackups = () => {
     backupService.list().then((list) => {
-      setBackupCount(list.length);
-      if (list.length > 0) {
-        const sorted = [...list].sort((a, b) => b.arquivo.localeCompare(a.arquivo));
-        setLatestBackup(sorted[0]);
-      }
+      const sorted = [...list].sort((a, b) => b.arquivo.localeCompare(a.arquivo));
+      setBackups(sorted);
     }).catch(() => { });
   };
 
@@ -63,6 +62,21 @@ export default function AdminDashboard() {
       alert(e instanceof Error ? e.message : "Erro ao criar backup");
     } finally {
       setCreatingBackup(null);
+    }
+  };
+
+  const handleRestore = async (arquivo: string) => {
+    if (!confirm(`Restaurar "${arquivo}"?\n\nOs dados atuais serão substituídos pelos dados do backup.`)) return;
+    setRestoringFile(arquivo);
+    setRestoreSuccess(null);
+    try {
+      await backupService.restore(arquivo);
+      setRestoreSuccess(arquivo);
+      refreshBackups();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Erro ao restaurar backup");
+    } finally {
+      setRestoringFile(null);
     }
   };
 
@@ -202,72 +216,42 @@ export default function AdminDashboard() {
         <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 14px" }}>
           Integridade dos Dados
         </h2>
+
         <div
           className="card"
-          style={{
-            padding: "18px 24px",
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-          }}
+          style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14, marginBottom: 10 }}
         >
           <div
             style={{
-              width: 40,
-              height: 40,
+              width: 38,
+              height: 38,
               borderRadius: "var(--radius-md)",
-              background: latestBackup ? "var(--green-tint, #e6f9f0)" : "var(--canvas)",
-              color: latestBackup ? "var(--green)" : "var(--ink-4)",
+              background: backups.length > 0 ? "var(--green-tint)" : "var(--canvas)",
+              color: backups.length > 0 ? "var(--green)" : "var(--ink-4)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
             }}
           >
-            {latestBackup ? <CheckCircle2 size={20} /> : <FileArchive size={20} />}
+            {backups.length > 0 ? <CheckCircle2 size={18} /> : <FileArchive size={18} />}
           </div>
-
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>
-              {latestBackup
-                ? `${backupCount} backup(s) disponível(is)`
-                : "Nenhum backup criado ainda"}
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+              {backups.length > 0 ? `${backups.length} backup(s) disponível(is)` : "Nenhum backup criado ainda"}
             </div>
-            {latestBackup ? (
-              <div style={{ fontSize: 12, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span
-                  style={{
-                    padding: "1px 6px",
-                    borderRadius: 99,
-                    background: "var(--accent-tint)",
-                    color: "var(--accent)",
-                    fontWeight: 700,
-                    fontSize: 10,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {latestBackup.algoritmo}
-                </span>
-                <span>{formatBytes(latestBackup.tamanho)}</span>
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Clock size={11} /> {latestBackup.criadoEm}
-                </span>
-              </div>
-            ) : (
-              <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                Backups são criados automaticamente a cada 5 operações de escrita — Huffman e LZW alternados.
-              </div>
-            )}
+            <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
+              Criado automaticamente a cada 5 escritas — Huffman e LZW alternados.
+            </div>
           </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
             {(["huffman", "lzw"] as AlgoritmoCompressao[]).map((algo) => (
               <button
                 key={algo}
                 onClick={() => handleCreateBackup(algo)}
-                disabled={creatingBackup !== null}
+                disabled={creatingBackup !== null || restoringFile !== null}
                 className="btn btn-secondary btn-sm"
-                style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "center" }}
+                style={{ display: "flex", alignItems: "center", gap: 5 }}
               >
                 <Download size={12} />
                 {creatingBackup === algo ? "Criando..." : algo.toUpperCase()}
@@ -275,6 +259,85 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
+
+        {backups.length > 0 && (
+          <div className="card" style={{ overflow: "hidden" }}>
+            {restoreSuccess && (
+              <div style={{
+                padding: "10px 16px",
+                background: "var(--green-tint)",
+                borderBottom: "1px solid var(--border)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 12,
+                color: "var(--green)",
+                fontWeight: 600,
+              }}>
+                <CheckCircle2 size={14} />
+                Backup restaurado com sucesso: {restoreSuccess}
+              </div>
+            )}
+            <div style={{ maxHeight: 260, overflowY: "auto" }}>
+              {backups.map((b, i) => (
+                <div
+                  key={b.arquivo}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "11px 16px",
+                    borderBottom: i < backups.length - 1 ? "1px solid var(--border)" : "none",
+                    background: restoringFile === b.arquivo ? "var(--canvas)" : "transparent",
+                  }}
+                >
+                  <FileArchive size={15} style={{ color: "var(--ink-4)", flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "var(--ink)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}>
+                      {b.arquivo}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
+                      <span style={{
+                        padding: "1px 5px",
+                        borderRadius: 99,
+                        background: "var(--accent-tint)",
+                        color: "var(--accent)",
+                        fontWeight: 700,
+                        fontSize: 9,
+                        textTransform: "uppercase",
+                      }}>
+                        {b.algoritmo}
+                      </span>
+                      <span>{formatBytes(b.tamanho)}</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                        <Clock size={10} /> {b.criadoEm}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRestore(b.arquivo)}
+                    disabled={restoringFile !== null || creatingBackup !== null}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, color: "var(--amber)" }}
+                    title="Restaurar este backup"
+                  >
+                    {restoringFile === b.arquivo
+                      ? <><RotateCcw size={11} className="anim-spin" /> Restaurando...</>
+                      : <><RotateCcw size={11} /> Restaurar</>
+                    }
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div

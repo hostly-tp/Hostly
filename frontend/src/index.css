@@ -1,32 +1,26 @@
 @import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
-/* ─── Design Tokens ─────────────────────────────────────────────────── */
 :root {
-  /* Canvas */
   --canvas:        #F8F8F6;
   --surface:       #FFFFFF;
   --surface-dim:   #F2F2EF;
   --surface-glass: rgba(255,255,255,0.88);
 
-  /* Ink scale */
   --ink:           #0C0C11;
   --ink-2:         #3A3A4A;
   --ink-3:         #6E6E82;
   --ink-4:         #ABABBC;
   --ink-5:         #D8D8E4;
 
-  /* Border */
   --border:        #E4E4EC;
   --border-strong: #C8C8D6;
 
-  /* Accent – warm terracotta */
   --accent:        #C85C32;
   --accent-hover:  #A8441F;
   --accent-tint:   #FDF2EE;
   --accent-mid:    #E8784E;
 
-  /* Semantic */
   --green:         #1A7A49;
   --green-tint:    #F0FAF4;
   --amber:         #C47A0A;
@@ -36,7 +30,6 @@
   --blue:          #2563EB;
   --blue-tint:     #EFF6FF;
 
-  /* Elevation */
   --shadow-xs:  0 1px 2px  rgba(12,12,17,0.04);
   --shadow-sm:  0 2px 8px  rgba(12,12,17,0.06);
   --shadow-md:  0 4px 16px rgba(12,12,17,0.09);
@@ -44,7 +37,6 @@
   --shadow-xl:  0 16px 48px rgba(12,12,17,0.16);
   --shadow-2xl: 0 24px 72px rgba(12,12,17,0.22);
 
-  /* Radius */
   --radius-xs:  4px;
   --radius-sm:  8px;
   --radius-md:  12px;
@@ -52,13 +44,11 @@
   --radius-xl:  20px;
   --radius-2xl: 28px;
 
-  /* Sidebar */
   --sidebar-w:       248px;
   --sidebar-w-mini:  68px;
   --sidebar-gap:     16px;
 }
 
-/* ─── Reset & Base ───────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body, #root {
@@ -78,7 +68,6 @@ body {
 button, input, select, textarea { font-family: inherit; }
 button { cursor: pointer; }
 
-/* ─── Scrollbar ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
@@ -87,14 +76,18 @@ button { cursor: pointer; }
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
 
-/* ─── Sidebar ────────────────────────────────────────────────────────── */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+.skeleton { background: var(--border); border-radius: 4px; animation: skeleton-pulse 1.5s ease infinite; }
+
 .hostly-sidebar {
   background: var(--surface);
   border-right: 1px solid var(--border);
   box-shadow: var(--shadow-lg);
 }
 
-/* ─── Card ───────────────────────────────────────────────────────────── */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -109,7 +102,6 @@ button { cursor: pointer; }
   box-shadow: var(--shadow-md);
 }
 
-/* ─── Map ────────────────────────────────────────────────────────────── */
 .leaflet-container {
   z-index: 0;
   background: #f0ede8;
@@ -135,7 +127,6 @@ button { cursor: pointer; }
   background: var(--surface-dim) !important;
 }
 
-/* ─── Map Pins ───────────────────────────────────────────────────────── */
 .map-pin {
   cursor: pointer;
   transition: transform 150ms ease;
@@ -180,7 +171,6 @@ button { cursor: pointer; }
   box-shadow: 0 4px 16px rgba(12,12,17,0.3);
 }
 
-/* ─── Animations ─────────────────────────────────────────────────────── */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -210,7 +200,6 @@ button { cursor: pointer; }
 .anim-slide-right { animation: slide-right 200ms ease both; }
 .anim-spin     { animation: spin     700ms linear infinite; }
 
-/* ─── Form Input ─────────────────────────────────────────────────────── */
 .field-input {
   width: 100%;
   background: var(--canvas);
@@ -229,7 +218,6 @@ button { cursor: pointer; }
   box-shadow: 0 0 0 3px var(--accent-tint);
 }
 
-/* ─── Badge ──────────────────────────────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -246,7 +234,6 @@ button { cursor: pointer; }
 .badge-blue   { background: var(--blue-tint);   color: var(--blue); }
 .badge-ink    { background: var(--surface-dim); color: var(--ink-2); }
 
-/* ─── Btn ────────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -296,7 +283,6 @@ button { cursor: pointer; }
   border-radius: var(--radius-lg);
 }
 
-/* ─── Stat Card ──────────────────────────────────────────────────────── */
 .stat-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -304,14 +290,12 @@ button { cursor: pointer; }
   padding: 24px;
 }
 
-/* ─── Sidebar Scrollbar ──────────────────────────────────────────────── */
 .sidebar-scroll {
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--ink-5) transparent;
 }
 
-/* ─── Table ──────────────────────────────────────────────────────────── */
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th {
   text-align: left;
@@ -332,7 +316,6 @@ button { cursor: pointer; }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tbody tr:hover td { background: var(--canvas); }
 
-/* ─── Gallery ────────────────────────────────────────────────────────── */
 .gallery-img {
   width: 100%;
   height: 100%;
@@ -340,7 +323,6 @@ button { cursor: pointer; }
   display: block;
 }
 
-/* ─── Overlay ────────────────────────────────────────────────────────── */
 .overlay-backdrop {
   position: fixed;
   inset: 0;
@@ -360,7 +342,6 @@ button { cursor: pointer; }
   padding: 20px;
 }
 
-/* ─── Leaflet Attribution ────────────────────────────────────────────── */
 .leaflet-control-attribution {
   font-size: 9px !important;
   background: rgba(255,255,255,0.7) !important;
