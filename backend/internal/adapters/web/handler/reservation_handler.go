@@ -42,6 +42,7 @@ func NewReservationHandler(svc reservationuc.Service, sortFn func(attr string, a
 
 func (h *ReservationHandler) List(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
+	algo := query.Get("algoritmo")
 	filter, err := parseReservationListFilter(
 		query.Get("idImovel"),
 		query.Get("idUsuario"),
@@ -71,11 +72,15 @@ func (h *ReservationHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if q := filter.Query; q != "" {
+		matchFn := patternmatch.MatchBM
+		if algo == "kmp" {
+			matchFn = patternmatch.MatchKMP
+		}
 		var matched []domain.Reservation
 		for _, res := range filtered {
-			if patternmatch.MatchBM(string(res.Status), q) ||
-				patternmatch.MatchBM(res.StartDate, q) ||
-				patternmatch.MatchBM(res.EndDate, q) {
+			if matchFn(string(res.Status), q) ||
+				matchFn(res.StartDate, q) ||
+				matchFn(res.EndDate, q) {
 				matched = append(matched, res)
 			}
 		}

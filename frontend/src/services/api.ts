@@ -188,6 +188,7 @@ export const imoveisService = {
     valorDiariaMin?: number;
     valorDiariaMax?: number;
     comodidades?: number[];
+    algoritmo?: "bm" | "kmp";
   }): Promise<Imovel[]> {
     const query = new URLSearchParams();
     if (typeof params?.idUsuario === "number") {
@@ -219,6 +220,9 @@ export const imoveisService = {
     }
     if (params?.comodidades?.length) {
       query.set("comodidades", params.comodidades.join(","));
+    }
+    if (params?.algoritmo) {
+      query.set("algoritmo", params.algoritmo);
     }
 
     const qs = query.toString();
@@ -316,10 +320,13 @@ export const imoveisService = {
 
 
 export const usuarioService = {
-  async getAll(params?: { busca?: string }): Promise<Usuario[]> {
+  async getAll(params?: { busca?: string; algoritmo?: "bm" | "kmp" }): Promise<Usuario[]> {
     const query = new URLSearchParams();
     if (params?.busca?.trim()) {
       query.set("busca", params.busca.trim());
+    }
+    if (params?.algoritmo) {
+      query.set("algoritmo", params.algoritmo);
     }
     const qs = query.toString();
     return request<Usuario[]>(qs ? `/usuarios?${qs}` : "/usuarios");
@@ -355,6 +362,7 @@ export const reservaService = {
     periodoAte?: string;
     ordenarPor?: "dataInicio" | "dataFim" | "valorTotal";
     ordem?: "asc" | "desc";
+    algoritmo?: "bm" | "kmp";
   }): Promise<Reserva[]> {
     const query = new URLSearchParams();
     if (typeof params?.idImovel === "number") {
@@ -383,6 +391,9 @@ export const reservaService = {
     }
     if (params?.ordem) {
       query.set("ordem", params.ordem);
+    }
+    if (params?.algoritmo) {
+      query.set("algoritmo", params.algoritmo);
     }
 
     const qs = query.toString();
