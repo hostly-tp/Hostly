@@ -17,7 +17,7 @@ function fmt(v: number) {
 }
 
 export default function Explore() {
-  const { filters, setFilters, openDetail, setSelectedProperty, detailPropertyId } = useStore();
+  const { filters, setFilters, openDetail, setSelectedProperty, detailPropertyId, searchAlgo, setSearchAlgo } = useStore();
   const [properties, setProperties] = useState<Imovel[]>([]);
   const [amenities, setAmenities] = useState<ComodidadeCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,12 +47,13 @@ export default function Explore() {
         params.ordenarPor = SORT_OPTIONS[sortIdx].ordenarPor;
         params.ordem = SORT_OPTIONS[sortIdx].ordem;
       }
+      params.algoritmo = searchAlgo;
       const data = await imoveisService.getAll(params);
       setProperties(data);
     } finally {
       setLoading(false);
     }
-  }, [filters.search, filters.priceMin, filters.priceMax, amenityIdsKey, sortIdx]);
+  }, [filters.search, filters.priceMin, filters.priceMax, amenityIdsKey, sortIdx, searchAlgo]);
 
   useEffect(() => {
     fetchProperties();
@@ -132,39 +133,64 @@ export default function Explore() {
               </button>
             )}
           </div>
-          <button
-            onClick={() => setShowFilters((v) => !v)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "7px 12px",
-              borderRadius: "var(--radius-sm)",
-              border: "1.5px solid var(--border)",
-              background: showFilters ? "var(--accent-tint)" : "var(--surface)",
-              color: showFilters ? "var(--accent)" : "var(--ink-3)",
-              fontSize: 12,
-              fontWeight: 600,
-              transition: "all 140ms ease",
-            }}
-          >
-            <SlidersHorizontal size={13} />
-            Filtros
-            {(sortIdx !== null || filters.amenityIds.length > 0 || filters.priceMin > 0 || filters.priceMax < 5000) && (
-              <span
-                style={{
-                  background: "var(--accent)",
-                  color: "#fff",
-                  borderRadius: "99px",
-                  fontSize: 10,
-                  padding: "1px 6px",
-                  fontWeight: 700,
-                }}
-              >
-                {(sortIdx !== null ? 1 : 0) + filters.amenityIds.length + (filters.priceMin > 0 || filters.priceMax < 5000 ? 1 : 0)}
-              </span>
-            )}
-          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 12px",
+                borderRadius: "var(--radius-sm)",
+                border: "1.5px solid var(--border)",
+                background: showFilters ? "var(--accent-tint)" : "var(--surface)",
+                color: showFilters ? "var(--accent)" : "var(--ink-3)",
+                fontSize: 12,
+                fontWeight: 600,
+                transition: "all 140ms ease",
+              }}
+            >
+              <SlidersHorizontal size={13} />
+              Filtros
+              {(sortIdx !== null || filters.amenityIds.length > 0 || filters.priceMin > 0 || filters.priceMax < 5000) && (
+                <span
+                  style={{
+                    background: "var(--accent)",
+                    color: "#fff",
+                    borderRadius: "99px",
+                    fontSize: 10,
+                    padding: "1px 6px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {(sortIdx !== null ? 1 : 0) + filters.amenityIds.length + (filters.priceMin > 0 || filters.priceMax < 5000 ? 1 : 0)}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setSearchAlgo(searchAlgo === "bm" ? "kmp" : "bm")}
+              title={`Algoritmo de busca: ${searchAlgo.toUpperCase()} — clique para alternar`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "7px 12px",
+                borderRadius: "var(--radius-sm)",
+                border: `1.5px solid ${searchAlgo === "kmp" ? "var(--accent)" : "var(--border)"}`,
+                background: searchAlgo === "kmp" ? "var(--accent-tint)" : "var(--surface)",
+                color: searchAlgo === "kmp" ? "var(--accent)" : "var(--ink-3)",
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: "0.06em",
+                transition: "all 140ms ease",
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              {searchAlgo.toUpperCase()}
+            </button>
+          </div>
         </div>
 
         {showFilters && (

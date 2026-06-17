@@ -19,6 +19,7 @@ interface AppStore {
   user: Usuario | null;
   token: string | null;
   sidebarCollapsed: boolean;
+  searchAlgo: "bm" | "kmp";
   map: MapState;
   filters: FilterState;
   detailPropertyId: number | null;
@@ -28,6 +29,7 @@ interface AppStore {
   setToken: (token: string | null) => void;
   logout: () => void;
   setSidebarCollapsed: (v: boolean) => void;
+  setSearchAlgo: (algo: "bm" | "kmp") => void;
   setMapCenter: (center: [number, number], zoom?: number) => void;
   setSelectedProperty: (id: number | null) => void;
   setFilters: (f: Partial<FilterState>) => void;
@@ -51,6 +53,7 @@ export const useStore = create<AppStore>()(
       user: null,
       token: null,
       sidebarCollapsed: false,
+      searchAlgo: "bm" as "bm" | "kmp",
       map: {
         center: [-14.235, -51.925],
         zoom: 5,
@@ -67,6 +70,7 @@ export const useStore = create<AppStore>()(
         set({ user: null, token: null, detailPropertyId: null });
       },
       setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),
+      setSearchAlgo: (algo) => set({ searchAlgo: algo }),
       setMapCenter: (center, zoom) =>
         set((s) => ({ map: { ...s.map, center, zoom: zoom ?? s.map.zoom } })),
       setSelectedProperty: (id) =>
@@ -84,6 +88,7 @@ export const useStore = create<AppStore>()(
       partialize: (s) => ({
         token: s.token,
         sidebarCollapsed: s.sidebarCollapsed,
+        searchAlgo: s.searchAlgo,
       }),
     },
   ),

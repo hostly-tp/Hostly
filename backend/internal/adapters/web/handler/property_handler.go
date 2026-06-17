@@ -75,6 +75,7 @@ func NewPropertyHandler(svc property.Service, sortFn func(attr string, asc bool)
 
 func (h *PropertyHandler) List(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
+	algo := query.Get("algoritmo")
 	filter, err := parsePropertyListFilter(
 		query.Get("idUsuario"),
 		query.Get("cidade"),
@@ -104,13 +105,17 @@ func (h *PropertyHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if q := strings.TrimSpace(filter.Query); q != "" {
+		matchFn := patternmatch.MatchBM
+		if algo == "kmp" {
+			matchFn = patternmatch.MatchKMP
+		}
 		matched := filtered[:0]
 		for _, p := range filtered {
-			if patternmatch.MatchBM(p.Title, q) ||
-				patternmatch.MatchBM(p.Description, q) ||
-				patternmatch.MatchBM(p.City, q) ||
-				patternmatch.MatchBM(p.Address.Street, q) ||
-				patternmatch.MatchBM(p.Address.Neighborhood, q) {
+			if matchFn(p.Title, q) ||
+				matchFn(p.Description, q) ||
+				matchFn(p.City, q) ||
+				matchFn(p.Address.Street, q) ||
+				matchFn(p.Address.Neighborhood, q) {
 				matched = append(matched, p)
 			}
 		}

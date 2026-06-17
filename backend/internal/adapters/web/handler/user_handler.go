@@ -81,17 +81,23 @@ func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
-	busca := r.URL.Query().Get("busca")
+	q := r.URL.Query()
+	busca := q.Get("busca")
+	algo := q.Get("algoritmo")
 	users, err := h.svc.List(useruc.ListFilter{Query: busca})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	if q := busca; q != "" {
+	if busca != "" {
+		matchFn := patternmatch.MatchBM
+		if algo == "kmp" {
+			matchFn = patternmatch.MatchKMP
+		}
 		var matched []domain.User
 		for _, u := range users {
-			if patternmatch.MatchBM(u.Name, q) || patternmatch.MatchBM(u.Email, q) {
+			if matchFn(u.Name, busca) || matchFn(u.Email, busca) {
 				matched = append(matched, u)
 			}
 		}
